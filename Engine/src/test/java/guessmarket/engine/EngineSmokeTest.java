@@ -74,7 +74,7 @@ public final class EngineSmokeTest {
                         <GM-event name="Election Winner">
                             <id>1</id>
                             <description>Will candidate A win?</description>
-                            <commission type="on-purchase">5</commission>
+                            <comision type="on-purchase">5</comision>
                             <GM-options>
                                 <GM-option>Yes</GM-option>
                                 <GM-option>No</GM-option>
@@ -84,7 +84,7 @@ public final class EngineSmokeTest {
                         <GM-event name="Rain Tomorrow">
                             <id>2</id>
                             <description>Will it rain tomorrow?</description>
-                            <commission type="on-close">10</commission>
+                            <comision type="on-close">10</comision>
                             <GM-options>
                                 <GM-option>Rain</GM-option>
                                 <GM-option>No rain</GM-option>
