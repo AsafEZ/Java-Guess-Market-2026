@@ -22,9 +22,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Loads and validates Guess Market XML files using JAXB.
- */
+
 public final class XmlMarketLoader {
 
     private final JAXBContext context;
