@@ -1,117 +1,126 @@
 package guessmarket.engine.loading;
 
-import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import guessmarket.engine.loading.jaxb.GuessMarket;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
-/** Parses XML into temporary definitions; it never mutates the live engine state. */
+
 public final class XmlMarketLoader {
+
+    private final JAXBContext context;
+    private final Schema schema;
+
+    public XmlMarketLoader() {
+        try {
+            context =
+                    JAXBContext.newInstance(
+                            GuessMarket.class);
+
+            URL schemaUrl =
+                    XmlMarketLoader.class.getResource(
+                            "/GM-EX1-Schema.xsd");
+
+            if (schemaUrl == null) {
+                throw new IllegalStateException(
+                        "Could not find "
+                                + "GM-EX1-Schema.xsd "
+                                + "on the classpath.");
+            }
+
+            SchemaFactory schemaFactory =
+                    SchemaFactory.newInstance(
+                            XMLConstants
+                                    .W3C_XML_SCHEMA_NS_URI);
+
+            /*
+             * The XSD may not load other files
+             * from the network or file system.
+             */
+            schemaFactory.setProperty(
+                    XMLConstants.ACCESS_EXTERNAL_DTD,
+                    "");
+
+            schemaFactory.setProperty(
+                    XMLConstants.ACCESS_EXTERNAL_SCHEMA,
+                    "");
+
+            schema =
+                    schemaFactory.newSchema(schemaUrl);
+
+        } catch (JAXBException | SAXException ex) {
+            throw new IllegalStateException(
+                    "Could not initialize "
+                            + "the JAXB XML loader.",
+                    ex);
+        }
+    }
+
     public MarketDefinition load(Path xmlPath) {
         try {
-            DocumentBuilderFactory factory = secureFactory();
-            Document document = factory.newDocumentBuilder().parse(xmlPath.toFile());
-            Element root = document.getDocumentElement();
-            Element eventsElement = requiredDirectChild(root, "GM-events");
+            Unmarshaller unmarshaller =
+                    context.createUnmarshaller();
 
-            List<EventDefinition> definitions = new ArrayList<>();
-            for (Element eventElement : directChildren(eventsElement, "GM-event")) {
-                definitions.add(parseEvent(eventElement));
-            }
-            return new MarketDefinition(definitions);
-        } catch (EngineException ex) {
-            throw ex;
-        } catch (ParserConfigurationException | SAXException | IOException | RuntimeException ex) {
+            /*
+             * Validate the XML against
+             * GM-EX1-Schema.xsd.
+             */
+            unmarshaller.setSchema(schema);
+
+            /*
+             * Convert the XML file into
+             * JAXB-generated Java objects.
+             */
+            GuessMarket xmlSystem =
+                    (GuessMarket)
+                            unmarshaller.unmarshal(
+                                    xmlPath.toFile());
+
+            return JaxbDefinitionMapper
+                    .toDefinition(xmlSystem);
+
+        } catch (JAXBException ex) {
             throw new EngineException(
                     ErrorCode.XML_PARSE_ERROR,
-                    "Could not read the XML file: " + ex.getMessage(),
+                    "Could not read or validate "
+                            + "the XML file: "
+                            + getXmlErrorMessage(ex),
                     ex);
         }
     }
 
-    private static EventDefinition parseEvent(Element eventElement) {
-        String name = eventElement.getAttribute("name").trim();
-        int id = parseInt(requiredText(eventElement, "id"), "id");
-        String description = requiredText(eventElement, "description");
+    private static String getXmlErrorMessage(
+            JAXBException exception) {
 
-        Element commissionElement = requiredDirectChild(eventElement, "commission");
-        int commission = parseInt(commissionElement.getTextContent().trim(), "commission");
-        CommissionType commissionType = CommissionType.fromXml(
-                commissionElement.getAttribute("type"));
+        Throwable linked =
+                exception.getLinkedException();
 
-        Element optionsElement = requiredDirectChild(eventElement, "GM-options");
-        List<String> optionNames = new ArrayList<>();
-        for (Element optionElement : directChildren(optionsElement, "GM-option")) {
-            optionNames.add(optionElement.getTextContent().trim());
+        if (linked != null
+                && linked.getMessage() != null) {
+            return linked.getMessage();
         }
 
-        Element methodElement = requiredDirectChild(eventElement, "GM-method");
-        Element lmsrElement = requiredDirectChild(methodElement, "GM-LMSR");
-        int b = parseInt(requiredText(lmsrElement, "b"), "b");
-
-        return new EventDefinition(
-                id, name, description, commission, commissionType, optionNames, b);
-    }
-
-    private static DocumentBuilderFactory secureFactory() throws ParserConfigurationException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-        factory.setXIncludeAware(false);
-        factory.setExpandEntityReferences(false);
-        return factory;
-    }
-
-    private static String requiredText(Element parent, String tagName) {
-        return requiredDirectChild(parent, tagName).getTextContent().trim();
-    }
-
-    private static Element requiredDirectChild(Element parent, String tagName) {
-        List<Element> matches = directChildren(parent, tagName);
-        if (matches.size() != 1) {
-            throw new EngineException(
-                    ErrorCode.INVALID_EVENT_DEFINITION,
-                    "Expected exactly one <" + tagName + "> inside <" + parent.getTagName() + ">.");
+        if (exception.getMessage() != null) {
+            return exception.getMessage();
         }
-        return matches.get(0);
-    }
 
-    private static List<Element> directChildren(Element parent, String tagName) {
-        List<Element> result = new ArrayList<>();
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node node = children.item(i);
-            if (node instanceof Element element && element.getTagName().equals(tagName)) {
-                result.add(element);
-            }
-        }
-        return result;
-    }
-
-    private static int parseInt(String value, String fieldName) {
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            throw new EngineException(
-                    ErrorCode.INVALID_EVENT_DEFINITION,
-                    "The <" + fieldName + "> value must be a whole number: '" + value + "'.",
-                    ex);
-        }
+        return exception.getClass().getSimpleName();
     }
 }
