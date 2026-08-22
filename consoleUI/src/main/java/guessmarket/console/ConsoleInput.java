@@ -6,10 +6,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Scanner;
 
-/**
- * Reads raw Console input and performs syntactic validation only.
- * Business rules remain the responsibility of the Engine.
- */
+
 public final class ConsoleInput {
 
     private final Scanner scanner;

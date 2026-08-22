@@ -1,5 +1,4 @@
-package guessmarket.console
-;
+package guessmarket.console;
 
 import guessmarket.engine.api.EngineFactory;
 import guessmarket.engine.api.GuessMarketEngine;
