@@ -29,11 +29,6 @@ public final class LmsrTradingMechanism implements TradingMechanism {
                 Objects.requireNonNull(calculator, "calculator");
     }
 
-    @Override
-    public TradingMethod getTradingMethod() {
-        return TradingMethod.LMSR;
-    }
-
     public double executePurchase(
             List<MarketOption> options,
             MarketOption selectedOption,
@@ -68,6 +63,26 @@ public final class LmsrTradingMechanism implements TradingMechanism {
             );
         }
     }
+
+    private LmsrTradingMechanism requireLmsrMechanism() {
+        if (tradingMechanism instanceof LmsrTradingMechanism lmsrMechanism) {
+
+            return lmsrMechanism;
+        }
+
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not use LMSR."
+        );
+    }
+
+
+
+    @Override
+    public TradingMethod getTradingMethod() {
+        return TradingMethod.LMSR;
+    }
+
 
     public int getB() {
         return b;

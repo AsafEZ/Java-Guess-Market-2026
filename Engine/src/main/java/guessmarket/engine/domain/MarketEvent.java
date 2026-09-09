@@ -46,43 +46,57 @@ public final class MarketEvent {
         this.account = new EventAccount(initialSubsidy);
     }
 
-    public PurchaseOutcome purchase(int optionNumber, long quantity, LmsrCalculator calculator) {
+    public PurchaseOutcome purchase(
+            int optionNumber,
+            long quantity) {
+
         requireActive();
+
         if (quantity <= 0) {
             throw new EngineException(
                     ErrorCode.INVALID_SHARE_QUANTITY,
-                    "Share quantity must be a positive whole number.");
+                    "Share quantity must be a positive whole number."
+            );
         }
 
         MarketOption selected = findOption(optionNumber);
-        int optionIndex = selected.getOptionNumber() - 1;
-        long firstShares = options.get(0).getPurchasedShares();
-        long secondShares = options.get(1).getPurchasedShares();
 
-        final double shareCost;
-        try {
-            shareCost = calculator.purchaseCost(
-                    b, firstShares, secondShares, optionIndex, quantity);
-            selected.addShares(quantity);
-        } catch (ArithmeticException ex) {
-            throw new EngineException(
-                    ErrorCode.ARITHMETIC_OVERFLOW,
-                    "The requested purchase is too large.",
-                    ex);
-        }
+        LmsrTradingMechanism lmsrMechanism =
+                requireLmsrMechanism();
 
-        double commission = commissionPolicy.type() == CommissionType.ON_PURCHASE
-                ? commissionPolicy.calculate(shareCost)
-                : 0.0;
+        double shareCost = lmsrMechanism.executePurchase(
+                options,
+                selected,
+                quantity
+        );
+
+        double commission =
+                commissionPolicy.type() == CommissionType.ON_PURCHASE
+                        ? commissionPolicy.calculate(shareCost)
+                        : 0.0;
+
         double totalPaid = shareCost + commission;
+
         account.recordPurchase(shareCost, commission);
+
         trades.add(new Trade(
-                nextTradeNumber++, optionNumber, selected.getName(), quantity,
-                shareCost, commission, totalPaid));
+                nextTradeNumber++,
+                optionNumber,
+                selected.getName(),
+                quantity,
+                shareCost,
+                commission,
+                totalPaid
+        ));
 
-        return new PurchaseOutcome(optionNumber, quantity, shareCost, commission, totalPaid);
+        return new PurchaseOutcome(
+                optionNumber,
+                quantity,
+                shareCost,
+                commission,
+                totalPaid
+        );
     }
-
     public CloseOutcome close(int optionNumber) {
         requireActive();
         MarketOption winner = findOption(optionNumber);
