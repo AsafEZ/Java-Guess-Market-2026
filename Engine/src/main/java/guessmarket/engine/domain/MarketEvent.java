@@ -32,7 +32,6 @@ public final class MarketEvent {
             String description,
             List<MarketOption> options,
             CommissionPolicy commissionPolicy,
-            int b,
             double initialSubsidy, TradingMechanism tradingMechanism) {
         this.tradingMechanism =
                 Objects.requireNonNull(tradingMechanism, "tradingMechanism");
@@ -44,7 +43,6 @@ public final class MarketEvent {
         this.description = Objects.requireNonNull(description, "description");
         this.options = List.copyOf(options);
         this.commissionPolicy = Objects.requireNonNull(commissionPolicy, "commissionPolicy");
-        this.b = b;
         this.account = new EventAccount(initialSubsidy);
     }
 
