@@ -1,12 +1,13 @@
 package guessmarket.engine.domain;
 
-import guessmarket.engine.calculation.LmsrCalculator;
+import guessmarket.engine.enums.TradingMethod;
+import guessmarket.engine.trading.TradingMechanism;
+import guessmarket.engine.trading.lmsr.LmsrTradingMechanism;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
-import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
-import guessmarket.engine.trading.TradingMechanism;
+
 
 import java.util.ArrayList;
 import java.util.List;
