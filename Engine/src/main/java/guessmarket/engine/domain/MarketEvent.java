@@ -19,7 +19,6 @@ public final class MarketEvent {
     private final String description;
     private final List<MarketOption> options;
     private final CommissionPolicy commissionPolicy;
-    private final int b;
     private final EventAccount account;
     private final List<Trade> trades = new ArrayList<>();
     private EventStatus status = EventStatus.ACTIVE;
