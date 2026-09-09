@@ -2,7 +2,6 @@ package guessmarket.engine.exception;
 
 import java.util.Objects;
 
-/** Expected business/validation failure that a UI can display without crashing. */
 public class EngineException extends RuntimeException {
     private final ErrorCode errorCode;
 
