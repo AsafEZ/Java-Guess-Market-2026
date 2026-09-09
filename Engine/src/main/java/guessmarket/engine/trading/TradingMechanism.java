@@ -1,4 +1,6 @@
 package guessmarket.engine.trading;
 
-public class TradingMechanism {
+import guessmarket.engine.enums.TradingMethod;
+public interface TradingMechanism {
+     TradingMethod getTradingMethod();
 }

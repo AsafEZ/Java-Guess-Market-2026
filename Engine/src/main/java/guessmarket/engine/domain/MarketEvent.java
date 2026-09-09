@@ -3,8 +3,10 @@ package guessmarket.engine.domain;
 import guessmarket.engine.calculation.LmsrCalculator;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
+import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.trading.TradingMechanism;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,7 @@ public final class MarketEvent {
     private EventStatus status = EventStatus.ACTIVE;
     private Integer winningOptionNumber;
     private long nextTradeNumber = 1;
+    private final TradingMechanism tradingMechanism;
 
     public MarketEvent(
             int id,
@@ -30,7 +33,9 @@ public final class MarketEvent {
             List<MarketOption> options,
             CommissionPolicy commissionPolicy,
             int b,
-            double initialSubsidy) {
+            double initialSubsidy, TradingMechanism tradingMechanism) {
+        this.tradingMechanism =
+                Objects.requireNonNull(tradingMechanism, "tradingMechanism");
         if (options.size() != 2) {
             throw new IllegalArgumentException("Exercise 1 requires exactly two options.");
         }
@@ -153,4 +158,8 @@ public final class MarketEvent {
     public Integer getWinningOptionNumber() {
         return winningOptionNumber;
     }
+
+    public TradingMechanism getTradingMechanism() {return tradingMechanism;}
+
+    public TradingMethod getTradingMethod() {return tradingMechanism.getTradingMethod();}
 }
