@@ -71,7 +71,7 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
             int optionNumber,
             long shareQuantity) {
         MarketEvent event = requireSystem().getEvent(eventId);
-        PurchaseOutcome outcome = event.purchase(optionNumber, shareQuantity, calculator);
+        PurchaseOutcome outcome = event.purchase(optionNumber, shareQuantity);
         EventDetails updated = EventDtoMapper.toDetails(event, calculator);
         return new PurchaseResult(
                 eventId,

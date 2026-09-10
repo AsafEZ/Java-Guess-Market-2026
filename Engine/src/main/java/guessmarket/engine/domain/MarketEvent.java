@@ -32,7 +32,8 @@ public final class MarketEvent {
             String description,
             List<MarketOption> options,
             CommissionPolicy commissionPolicy,
-            double initialSubsidy, TradingMechanism tradingMechanism) {
+             TradingMechanism tradingMechanism,
+            double initialSubsidy) {
         this.tradingMechanism =
                 Objects.requireNonNull(tradingMechanism, "tradingMechanism");
         if (options.size() != 2) {
