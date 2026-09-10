@@ -131,6 +131,20 @@ public final class MarketEvent {
         }
     }
 
+    private LmsrTradingMechanism requireLmsrMechanism() {
+        if (tradingMechanism instanceof LmsrTradingMechanism lmsrMechanism) {
+
+            return lmsrMechanism;
+        }
+
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not use LMSR."
+        );
+    }
+
+
+
     public int getId() {
         return id;
     }
@@ -152,7 +166,7 @@ public final class MarketEvent {
     }
 
     public int getB() {
-        return b;
+        return requireLmsrMechanism().getB();
     }
 
     public EventAccount getAccount() {
@@ -174,4 +188,6 @@ public final class MarketEvent {
     public TradingMechanism getTradingMechanism() {return tradingMechanism;}
 
     public TradingMethod getTradingMethod() {return tradingMechanism.getTradingMethod();}
+
+
 }

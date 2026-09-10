@@ -15,9 +15,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
     private final int b;
     private final LmsrCalculator calculator;
 
-    public LmsrTradingMechanism(
-            int b,
-            LmsrCalculator calculator) {
+    public LmsrTradingMechanism(int b, LmsrCalculator calculator) {
 
         if (b <= 0) {
             throw new IllegalArgumentException(
@@ -29,9 +27,8 @@ public final class LmsrTradingMechanism implements TradingMechanism {
                 Objects.requireNonNull(calculator, "calculator");
     }
 
-    public double executePurchase(
-            List<MarketOption> options,
-            MarketOption selectedOption,
+    public double executePurchase(List<MarketOption> options
+            ,MarketOption selectedOption,
             long quantity) {
 
         int optionIndex =
@@ -64,17 +61,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
         }
     }
 
-    private LmsrTradingMechanism requireLmsrMechanism() {
-        if (tradingMechanism instanceof LmsrTradingMechanism lmsrMechanism) {
 
-            return lmsrMechanism;
-        }
-
-        throw new EngineException(
-                ErrorCode.WRONG_TRADING_METHOD,
-                "Event " + id + " does not use LMSR."
-        );
-    }
 
 
 
