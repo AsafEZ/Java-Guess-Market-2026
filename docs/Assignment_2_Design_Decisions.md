@@ -1,5 +1,15 @@
 # Assignment 2 Design Decisions
 
+## Stage 1: LMSR Encapsulation
+
+- Status: Completed.
+- Goal: Encapsulate LMSR-specific calculations and configuration behind the LMSR mechanism family contract while preserving Assignment 1 behavior.
+- Rationale: Domain and mapping code should depend on trading contracts rather than the concrete LMSR implementation or its calculator.
+- Design decision: Keep `TradingMechanism` minimal and expose LMSR-specific behavior through `LmsrTradingOperations`, including `getB` because `b` is an LMSR configuration parameter.
+- Implementation result: `MarketEvent` depends on `LmsrTradingOperations`; direct `purchaseCost`, `optionValue`, and `initialSubsidy` calls are contained in `LmsrTradingMechanism`; `LmsrCalculator` is supplied only through the mechanism-construction dependency-injection path; no placeholder trading implementations remain.
+- Test result: `mvn compile` passed; `mvn test` passed with 0 JUnit tests discovered; `EngineSmokeTest` passed with assertions enabled.
+- Completion commit ID: Recorded in the final run summary after commit creation.
+
 ## LMSR Encapsulation - Subtask 1: Initial Subsidy Delegation
 
 - Goal: Delegate LMSR initial subsidy calculation through the same LMSR trading mechanism instance assigned to each event.
