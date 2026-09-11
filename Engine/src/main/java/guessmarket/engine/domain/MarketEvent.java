@@ -124,6 +124,16 @@ public final class MarketEvent {
         return options.get(optionNumber - 1);
     }
 
+    public double getLmsrOptionValue(int optionNumber) {
+        findOption(optionNumber);
+
+        return requireLmsrMechanism()
+                .calculateOptionValue(
+                        options,
+                        optionNumber
+                );
+    }
+
     private void requireActive() {
         if (status == EventStatus.CLOSED) {
             throw new EngineException(
