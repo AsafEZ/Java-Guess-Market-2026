@@ -35,3 +35,17 @@
 - Contract option 2: Keep `TradingMechanism` minimal and introduce smaller capability interfaces, such as a purchase execution capability and an option valuation capability, implemented only where meaningful. This avoids forcing LMSR-only or order-book-only concepts into one interface, but `MarketEvent` or factory code must decide which capabilities are required for a given public operation.
 - Test result: Not run for this documentation-only analysis; no production code was changed.
 - Commit ID: This analysis documentation commit; exact hash recorded in the final run summary after commit creation.
+
+## LMSR Encapsulation - Subtask 4: Family-Specific Operations Contract
+
+- Goal: Remove `MarketEvent`'s dependency on the concrete `LmsrTradingMechanism` class while preserving its existing behavior and public API.
+- Rationale: LMSR operations should be exposed through a family-specific contract so the minimal `TradingMechanism` contract does not force LMSR concepts onto a future order book mechanism.
+- Design decision: Introduce `LmsrTradingOperations extends TradingMechanism` as one contract for the LMSR mechanism family. It contains `executePurchase`, `calculateOptionValue`, `calculateInitialSubsidy`, and `getB`. The `getB` operation belongs here because `b` is an LMSR-specific configuration parameter, not a general trading-mechanism property.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/trading/lmsr/LmsrTradingOperations.java`
+  - `Engine/src/main/java/guessmarket/engine/trading/lmsr/LmsrTradingMechanism.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: `LmsrTradingMechanism` implements the LMSR family contract. `MarketEvent` now obtains LMSR behavior through `requireLmsrOperations()` and no longer imports or references the concrete mechanism class. `MarketEvent.getB()` retains its existing signature and behavior.
+- Test result: `mvn compile` passed; `mvn test` passed with 0 JUnit tests discovered; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.

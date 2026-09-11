@@ -2,7 +2,7 @@ package guessmarket.engine.domain;
 
 import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.trading.TradingMechanism;
-import guessmarket.engine.trading.lmsr.LmsrTradingMechanism;
+import guessmarket.engine.trading.lmsr.LmsrTradingOperations;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
 import guessmarket.engine.exception.EngineException;
@@ -62,10 +62,10 @@ public final class MarketEvent {
 
         MarketOption selected = findOption(optionNumber);
 
-        LmsrTradingMechanism lmsrMechanism =
-                requireLmsrMechanism();
+        LmsrTradingOperations lmsrOperations =
+                requireLmsrOperations();
 
-        double shareCost = lmsrMechanism.executePurchase(
+        double shareCost = lmsrOperations.executePurchase(
                 options,
                 selected,
                 quantity
@@ -127,7 +127,7 @@ public final class MarketEvent {
     public double getLmsrOptionValue(int optionNumber) {
         findOption(optionNumber);
 
-        return requireLmsrMechanism()
+        return requireLmsrOperations()
                 .calculateOptionValue(
                         options,
                         optionNumber
@@ -142,10 +142,10 @@ public final class MarketEvent {
         }
     }
 
-    private LmsrTradingMechanism requireLmsrMechanism() {
-        if (tradingMechanism instanceof LmsrTradingMechanism lmsrMechanism) {
+    private LmsrTradingOperations requireLmsrOperations() {
+        if (tradingMechanism instanceof LmsrTradingOperations lmsrOperations) {
 
-            return lmsrMechanism;
+            return lmsrOperations;
         }
 
         throw new EngineException(
@@ -177,7 +177,7 @@ public final class MarketEvent {
     }
 
     public int getB() {
-        return requireLmsrMechanism().getB();
+        return requireLmsrOperations().getB();
     }
 
     public EventAccount getAccount() {

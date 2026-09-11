@@ -5,12 +5,11 @@ import guessmarket.engine.domain.MarketOption;
 import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
-import guessmarket.engine.trading.TradingMechanism;
 
 import java.util.List;
 import java.util.Objects;
 
-public final class LmsrTradingMechanism implements TradingMechanism {
+public final class LmsrTradingMechanism implements LmsrTradingOperations {
 
     private final int b;
     private final LmsrCalculator calculator;
@@ -27,6 +26,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
                 Objects.requireNonNull(calculator, "calculator");
     }
 
+    @Override
     public double executePurchase(List<MarketOption> options
             ,MarketOption selectedOption,
             long quantity) {
@@ -62,6 +62,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
     }
 
 
+    @Override
     public double calculateOptionValue(
             List<MarketOption> options,
             int optionNumber) {
@@ -82,6 +83,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
         );
     }
 
+    @Override
     public double calculateInitialSubsidy() {
         return calculator.initialSubsidy(b);
     }
@@ -93,6 +95,7 @@ public final class LmsrTradingMechanism implements TradingMechanism {
     }
 
 
+    @Override
     public int getB() {
         return b;
     }

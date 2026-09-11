@@ -1,0 +1,21 @@
+package guessmarket.engine.trading.lmsr;
+
+import guessmarket.engine.domain.MarketOption;
+import guessmarket.engine.trading.TradingMechanism;
+
+import java.util.List;
+
+public interface LmsrTradingOperations extends TradingMechanism {
+    double executePurchase(
+            List<MarketOption> options,
+            MarketOption selectedOption,
+            long quantity);
+
+    double calculateOptionValue(
+            List<MarketOption> options,
+            int optionNumber);
+
+    double calculateInitialSubsidy();
+
+    int getB();
+}
