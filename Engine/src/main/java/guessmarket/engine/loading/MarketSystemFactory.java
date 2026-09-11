@@ -33,7 +33,7 @@ public final class MarketSystemFactory {
                 ));
             }
 
-            LmsrTradingMechanism tradingMechanism = new LmsrTradingMechanism(event.b(), calculator);
+            LmsrTradingMechanism lmsrTradingMechanism = new LmsrTradingMechanism(event.b(), calculator);
 
             MarketEvent marketEvent = new MarketEvent(
                     event.id(),
@@ -44,8 +44,8 @@ public final class MarketSystemFactory {
                             event.commissionPercentage(),
                             event.commissionType()
                     ),
-                    tradingMechanism,
-                    calculator.initialSubsidy(event.b())
+                    lmsrTradingMechanism,
+                    lmsrTradingMechanism.calculateInitialSubsidy()
             );
 
             system.addEvent(marketEvent);
