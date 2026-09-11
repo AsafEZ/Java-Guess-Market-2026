@@ -21,4 +21,17 @@
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: No code changes. `purchaseCost`, `optionValue`, and `initialSubsidy` calls are contained in `LmsrTradingMechanism`. `MarketSystemFactory` and `GuessMarketEngineImpl` still use `LmsrCalculator` only to create/configure the LMSR mechanism. `MarketEvent.getB()` delegates to the concrete LMSR mechanism and remains a public LMSR-specific leak that is not safe to remove in this subtask.
 - Test result: Not run for this documentation-only audit; Subtask 1 checks passed before this audit.
-- Commit ID: This audit documentation commit; exact hash recorded in the final run summary after commit creation.
+- Commit ID: `ae778788de4e58e52b2a78090762e70bd4ae2f24`
+
+## LMSR Encapsulation - Subtask 3: TradingMechanism Contract Analysis
+
+- Goal: Analyze which operations belong in a common `TradingMechanism` contract shared by LMSR and a future order book mechanism.
+- Rationale: The common contract must not force LMSR-only details such as `getB` or initial subsidy onto mechanisms that may not have them.
+- Design decision: No contract implementation was selected. A user-approved architectural decision is required before changing `TradingMechanism` or `MarketEvent`.
+- Changed files:
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: No code changes. Common candidates are mechanism identity and trade execution at the event boundary. LMSR-specific behavior includes `b`, cost-function pricing, and initial subsidy. Order book-specific behavior may include limit orders, matching, bid/ask state, and may not include initial subsidy.
+- Contract option 1: Add common trade execution and option valuation methods to `TradingMechanism`; keep initial subsidy outside the shared contract as LMSR-specific construction behavior. This would let `MarketEvent.purchase(...)` and current value mapping delegate polymorphically, but it may overfit the order book if its public operations require prices, order ids, or matching state beyond the current `purchaseShares` shape.
+- Contract option 2: Keep `TradingMechanism` minimal and introduce smaller capability interfaces, such as a purchase execution capability and an option valuation capability, implemented only where meaningful. This avoids forcing LMSR-only or order-book-only concepts into one interface, but `MarketEvent` or factory code must decide which capabilities are required for a given public operation.
+- Test result: Not run for this documentation-only analysis; no production code was changed.
+- Commit ID: This analysis documentation commit; exact hash recorded in the final run summary after commit creation.
