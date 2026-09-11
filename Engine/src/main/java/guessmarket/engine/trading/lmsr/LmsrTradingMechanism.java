@@ -62,7 +62,29 @@ public final class LmsrTradingMechanism implements TradingMechanism {
     }
 
 
+    public double calculateOptionValue(
+            List<MarketOption> options,
+            int optionNumber) {
 
+        int optionIndex = optionNumber - 1;
+
+        long firstShares =
+                options.get(0).getPurchasedShares();
+
+        long secondShares =
+                options.get(1).getPurchasedShares();
+
+        return calculator.optionValue(
+                b,
+                firstShares,
+                secondShares,
+                optionIndex
+        );
+    }
+
+    public double calculateInitialSubsidy() {
+        return calculator.initialSubsidy(b);
+    }
 
 
     @Override
