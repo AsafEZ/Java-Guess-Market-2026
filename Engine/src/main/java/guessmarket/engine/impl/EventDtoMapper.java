@@ -33,15 +33,17 @@ final class EventDtoMapper {
 
     static EventDetails toDetails(MarketEvent event, LmsrCalculator calculator) {
         List<OptionDetails> optionDetails = new ArrayList<>();
-        for (int index = 0; index < event.getOptions().size(); index++) {
-            MarketOption option = event.getOptions().get(index);
+
+        for (MarketOption option : event.getOptions()) {
             optionDetails.add(new OptionDetails(
                     option.getOptionNumber(),
                     option.getName(),
                     option.getPurchasedShares(),
-                    event.getLmsrOptionValue(option.getOptionNumber())));
+                    event.getLmsrOptionValue(
+                            option.getOptionNumber()
+                    )
+            ));
         }
-
         List<TradeDetails> newestFirst = new ArrayList<>();
         List<Trade> trades = event.getTrades();
         for (int index = trades.size() - 1; index >= 0; index--) {
