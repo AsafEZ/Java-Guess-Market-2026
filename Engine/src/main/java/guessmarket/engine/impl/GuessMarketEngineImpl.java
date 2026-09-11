@@ -62,7 +62,7 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
 
     @Override
     public synchronized EventDetails getEventDetails(int eventId) {
-        return EventDtoMapper.toDetails(requireSystem().getEvent(eventId), calculator);
+        return EventDtoMapper.toDetails(requireSystem().getEvent(eventId));
     }
 
     @Override
@@ -72,7 +72,7 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
             long shareQuantity) {
         MarketEvent event = requireSystem().getEvent(eventId);
         PurchaseOutcome outcome = event.purchase(optionNumber, shareQuantity);
-        EventDetails updated = EventDtoMapper.toDetails(event, calculator);
+        EventDetails updated = EventDtoMapper.toDetails(event);
         return new PurchaseResult(
                 eventId,
                 outcome.optionNumber(),
@@ -87,7 +87,7 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
     public synchronized CloseEventResult closeEvent(int eventId, int winningOptionNumber) {
         MarketEvent event = requireSystem().getEvent(eventId);
         CloseOutcome outcome = event.close(winningOptionNumber);
-        EventDetails closed = EventDtoMapper.toDetails(event, calculator);
+        EventDetails closed = EventDtoMapper.toDetails(event);
         return new CloseEventResult(
                 eventId,
                 outcome.winningOptionNumber(),

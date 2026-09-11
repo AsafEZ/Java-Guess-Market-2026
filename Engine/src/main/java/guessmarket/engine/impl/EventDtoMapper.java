@@ -1,6 +1,5 @@
 package guessmarket.engine.impl;
 
-import guessmarket.engine.calculation.LmsrCalculator;
 import guessmarket.engine.domain.MarketEvent;
 import guessmarket.engine.domain.MarketOption;
 import guessmarket.engine.domain.Trade;
@@ -31,7 +30,7 @@ final class EventDtoMapper {
                 event.getStatus());
     }
 
-    static EventDetails toDetails(MarketEvent event, LmsrCalculator calculator) {
+    static EventDetails toDetails(MarketEvent event) {
         List<OptionDetails> optionDetails = new ArrayList<>();
 
         for (MarketOption option : event.getOptions()) {
