@@ -120,7 +120,8 @@ public final class MarketSystem {
                 eventId,
                 optionNumber,
                 quantity,
-                quote.shareCost());
+                quote.shareCost(),
+                quote.commission());
         MarketEvent.PreparedPurchase preparedPurchase =
                 event.prepareUserPurchase(quote, buyer.getName());
 
@@ -134,7 +135,8 @@ public final class MarketSystem {
                 eventId,
                 optionNumber,
                 quantity,
-                quote.shareCost());
+                quote.shareCost(),
+                quote.commission());
         return event.applyPreparedUserPurchase(preparedPurchase);
     }
 

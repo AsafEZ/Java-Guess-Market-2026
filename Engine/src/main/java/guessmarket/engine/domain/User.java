@@ -68,7 +68,17 @@ public final class User {
             int optionNumber,
             long quantity,
             double paidAmount) {
-        account.recordExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+        recordExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    public void recordExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+        account.recordExecutedPurchase(
+                eventId, optionNumber, quantity, paidAmount, commissionPaid);
     }
 
     void validateExecutedPurchase(
@@ -76,7 +86,17 @@ public final class User {
             int optionNumber,
             long quantity,
             double paidAmount) {
-        account.validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+        validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    void validateExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+        account.validateExecutedPurchase(
+                eventId, optionNumber, quantity, paidAmount, commissionPaid);
     }
 
     void applyValidatedExecutedPurchase(
@@ -84,7 +104,32 @@ public final class User {
             int optionNumber,
             long quantity,
             double paidAmount) {
-        account.applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+        applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    void applyValidatedExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+        account.applyValidatedExecutedPurchase(
+                eventId, optionNumber, quantity, paidAmount, commissionPaid);
+    }
+
+    void validateAdditionalCommission(
+            int eventId,
+            int optionNumber,
+            double commissionPaid) {
+        account.validateAdditionalCommission(eventId, optionNumber, commissionPaid);
+    }
+
+    void applyValidatedAdditionalCommission(
+            int eventId,
+            int optionNumber,
+            double commissionPaid) {
+        account.applyValidatedAdditionalCommission(
+                eventId, optionNumber, commissionPaid);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {
@@ -95,12 +140,20 @@ public final class User {
         return account.getAmountPaidForOption(eventId, optionNumber);
     }
 
+    public double getCommissionPaidForOption(int eventId, int optionNumber) {
+        return account.getCommissionPaidForOption(eventId, optionNumber);
+    }
+
     public long getTotalShares(int eventId) {
         return account.getTotalShares(eventId);
     }
 
     public double getTotalAmountPaid(int eventId) {
         return account.getTotalAmountPaid(eventId);
+    }
+
+    public double getTotalCommissionPaid(int eventId) {
+        return account.getTotalCommissionPaid(eventId);
     }
 
     public Set<Integer> getPositionEventIds() {

@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 8A and Subtask 8B.1 are completed.
+- Status: In progress; Subtasks 1 through 8C are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -105,6 +105,7 @@
 - The same user may be the Market Maker of multiple events.
 - `MarketEvent` stores only the Market Maker user name/identifier. It does not hold a `User` object. `MarketSystem` resolves that identifier against its user registry.
 - Only the assigned Market Maker may open or close an event. Engine APIs for opening and closing therefore receive the acting user's identity.
+- A blocked Market Maker may not close an event. This follows the requirement that a blocked user cannot perform further actions and creates a known requirements limitation: an event may remain active with no authorized user able to close it. No unrequested administrator or recovery path will be introduced.
 - Opening an LMSR event transfers the calculated initial subsidy from the Market Maker's `UserAccount` to the event's `EventAccount`.
 - An LMSR event does not receive its subsidy during XML loading. It starts only after its Market Maker successfully opens it.
 - Opening an Order Book event will eventually debit the Market Maker for the initial inventory and credit the corresponding shares to the Market Maker's position. That behavior belongs to the later Order Book implementation.
@@ -114,6 +115,9 @@
 
 - `UserAccount` represents private user money. `EventAccount` represents only the event's contract funds.
 - Trading commissions are transferred to the assigned Market Maker's `UserAccount`; they are not retained as income in `EventAccount`.
+- Assignment 2 settlement is rejected atomically if `EventAccount` cannot cover every payout. The account may not become negative, the Market Maker is not charged for a shortfall, and partial payouts are not permitted.
+- Assignment 1 and Assignment 2 closing remain separate explicit paths. The existing `MarketEvent.close` and existing close result types remain unchanged for legacy events; multi-user settlement will be orchestrated through `MarketSystem` and will not fall back silently when aggregate shares and user positions disagree.
+- Assignment 2 settlement will return a new immutable domain `SettlementOutcome`. The existing domain `CloseOutcome` and DTO `CloseEventResult` remain unchanged for Assignment 1 compatibility.
 - Working assumption for ordinary user actions: an action that makes the balance negative completes. Immediately afterward the user is marked `BLOCKED` and cannot perform further actions.
 - The insufficient-funds rule for opening an event is stricter: the Market Maker's opening action is rejected in advance and does not create a negative balance.
 - Monetary values remain `double` for compatibility with the existing LMSR implementation. Stage 2 will not introduce a cross-cutting `BigDecimal` migration.
@@ -129,12 +133,11 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
-8. In progress: Subtask 8A separates pure LMSR purchase quoting from execution; Subtask 8B.1 adds transaction prevalidation/apply primitives and optional Trade buyer identity; Subtask 8B.2 will compose the user-aware purchase transaction.
-9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
-10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
-11. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls.
-12. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
-13. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
+8. Completed: Subtask 8A separates pure LMSR purchase quoting from execution; Subtasks 8B.1 and 8B.2 add transaction primitives, buyer-aware trades, and atomic user-aware purchases; Subtask 8C records purchase commissions in user positions.
+9. Implement multi-user settlement in two focused parts: 9A creates an immutable, non-mutating settlement plan; 9B prevalidates and atomically distributes funds before closing the event.
+10. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls and buyer identity mapping.
+11. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
+12. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
 
 - Documentation result: The selected ownership model, Assignment 1 current state, Assignment 2 target state, constraints, and ordered implementation plan are recorded. No production code, XSD, or JAXB files were changed.
 - Test result: Not run because this subtask changes documentation only.
@@ -366,4 +369,29 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the user-aware LMSR purchase transaction, distinct money destinations, buyer position recording, buyer-aware trades, and prevalidated event application while preserving the legacy purchase path.
 - Test result: Engine compilation passed as part of the Maven run; Maven ran 124 JUnit 5 tests with 0 failures and 0 errors, including 14 `UserAwarePurchaseTest` tests; the focused Market Maker overflow test passed; `EngineSmokeTest` passed with assertions enabled; `git diff --check` passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 8C: Commission Bookkeeping in Market Positions
+
+- Status: Completed.
+- Goal: Record every commission attributed to a user separately from share cost in the user's per-event position, and carry purchase commission through the atomic user-aware LMSR purchase flow without starting settlement.
+- Requirements audit: Assignment 2 requires user details to display total commission paid for participation in an event. It does not prescribe storage granularity. Purchase commission belongs to the purchased option, while future closing commission belongs to the winning holding, so commission is stored per option and summed for the event-level view.
+- Representation decision: Each private `MarketPosition.OptionHolding` now contains `shares`, commission-free `amountPaid`, and `commissionPaid`. `getCommissionPaidForOption` exposes the option total and `getTotalCommissionPaid` sums every option without exposing the holding or map.
+- Compatibility decision: Existing three-argument `MarketPosition.recordPurchase` and four-argument `UserAccount` and `User.recordExecutedPurchase` methods remain and delegate to new overloads with commission `0.0`. Existing callers therefore retain their previous bookkeeping semantics.
+- Purchase-flow decision: `MarketSystem.purchaseShares` supplies `quote.shareCost()` as `paidAmount` and `quote.commission()` as `commissionPaid` to both position prevalidation and application. When the buyer is also the Market Maker, the private account is debited only the net `shareCost`, but the position records the full gross commission calculated in the quote for reporting.
+- Validation and atomicity: Commission must be finite and non-negative. Position validation checks share, paid-amount, and commission accumulation before any field is replaced. First-position validation uses a temporary position, so invalid commission cannot leave an empty position. A focused transaction test seeds a finite maximum commission and confirms that commission overflow is raised by position prevalidation before balances, statuses, event funds, option shares, positions, or trade history change.
+- Closing-commission preparation: Package-private validate/apply operations can add commission to an existing option holding without changing shares or `amountPaid`. They reject a missing holding and do not create a purchase or position. Subtasks 9A and 9B will use these primitives only after settlement planning and full prevalidation.
+- Settlement decisions confirmed before 8C: A blocked Market Maker cannot close; an underfunded event cannot close or pay partially; legacy and multi-user closing use separate explicit paths; and Assignment 2 will use a new immutable domain `SettlementOutcome` while preserving `CloseOutcome` and `CloseEventResult`.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketPosition.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/UserAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/User.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketPositionTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserAccountTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserAwarePurchaseTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added per-option commission state, compatible recording overloads, scalar commission queries and delegation, future closing-commission primitives, and gross commission bookkeeping in the existing atomic purchase transaction. No settlement, payout, event closing, Engine API, XML/JAXB, Order Book, or UI code was added.
+- Test result: Engine compilation passed; Maven ran 130 JUnit 5 tests with 0 failures and 0 errors, including 19 `MarketPositionTest` tests and 15 `UserAwarePurchaseTest` tests; the focused commission-overflow transaction test passed; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.

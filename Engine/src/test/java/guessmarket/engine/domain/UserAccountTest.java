@@ -181,11 +181,12 @@ class UserAccountTest {
     void firstExecutedPurchaseCreatesPosition() {
         UserAccount account = new UserAccount(100.0);
 
-        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+        account.recordExecutedPurchase(7, 1, 4L, 12.5, 1.25);
 
         assertTrue(account.hasPosition(7));
         assertEquals(4L, account.getSharesForOption(7, 1));
         assertEquals(12.5, account.getAmountPaidForOption(7, 1));
+        assertEquals(1.25, account.getCommissionPaidForOption(7, 1));
     }
 
     @Test
@@ -203,13 +204,16 @@ class UserAccountTest {
     void tracksMultipleOptionsWithinOneEvent() {
         UserAccount account = new UserAccount(100.0);
 
-        account.recordExecutedPurchase(7, 1, 4L, 12.5);
-        account.recordExecutedPurchase(7, 2, 6L, 21.0);
+        account.recordExecutedPurchase(7, 1, 4L, 12.5, 1.25);
+        account.recordExecutedPurchase(7, 2, 6L, 21.0, 2.1);
 
         assertEquals(4L, account.getSharesForOption(7, 1));
         assertEquals(6L, account.getSharesForOption(7, 2));
+        assertEquals(1.25, account.getCommissionPaidForOption(7, 1));
+        assertEquals(2.1, account.getCommissionPaidForOption(7, 2));
         assertEquals(10L, account.getTotalShares(7));
         assertEquals(33.5, account.getTotalAmountPaid(7));
+        assertEquals(3.35, account.getTotalCommissionPaid(7), 1.0e-12);
     }
 
     @Test
@@ -232,8 +236,10 @@ class UserAccountTest {
 
         assertEquals(0L, account.getSharesForOption(7, 1));
         assertEquals(0.0, account.getAmountPaidForOption(7, 1));
+        assertEquals(0.0, account.getCommissionPaidForOption(7, 1));
         assertEquals(0L, account.getTotalShares(7));
         assertEquals(0.0, account.getTotalAmountPaid(7));
+        assertEquals(0.0, account.getTotalCommissionPaid(7));
     }
 
     @Test
@@ -265,6 +271,9 @@ class UserAccountTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> account.recordExecutedPurchase(9, 1, 1L, Double.NaN));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(10, 1, 1L, 2.0, Double.NaN));
 
         assertTrue(account.getPositionEventIds().isEmpty());
     }
@@ -272,14 +281,15 @@ class UserAccountTest {
     @Test
     void failedAdditionalPurchaseDoesNotChangeExistingPosition() {
         UserAccount account = new UserAccount(100.0);
-        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+        account.recordExecutedPurchase(7, 1, 4L, 12.5, 1.25);
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> account.recordExecutedPurchase(7, 1, -1L, 5.0));
+                () -> account.recordExecutedPurchase(7, 1, -1L, 5.0, 0.5));
 
         assertEquals(4L, account.getSharesForOption(7, 1));
         assertEquals(12.5, account.getAmountPaidForOption(7, 1));
+        assertEquals(1.25, account.getCommissionPaidForOption(7, 1));
         assertEquals(Set.of(7), account.getPositionEventIds());
     }
 

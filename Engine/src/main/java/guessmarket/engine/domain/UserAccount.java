@@ -74,8 +74,19 @@ public final class UserAccount {
             int optionNumber,
             long quantity,
             double paidAmount) {
-        validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
-        applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+        recordExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    public void recordExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+        validateExecutedPurchase(
+                eventId, optionNumber, quantity, paidAmount, commissionPaid);
+        applyValidatedExecutedPurchase(
+                eventId, optionNumber, quantity, paidAmount, commissionPaid);
     }
 
     void validateExecutedPurchase(
@@ -83,16 +94,26 @@ public final class UserAccount {
             int optionNumber,
             long quantity,
             double paidAmount) {
+        validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    void validateExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
         requirePositiveEventId(eventId);
 
         MarketPosition position = positionsByEventId.get(eventId);
         if (position == null) {
             MarketPosition newPosition = new MarketPosition(eventId);
-            newPosition.validatePurchase(optionNumber, quantity, paidAmount);
+            newPosition.validatePurchase(
+                    optionNumber, quantity, paidAmount, commissionPaid);
             return;
         }
 
-        position.validatePurchase(optionNumber, quantity, paidAmount);
+        position.validatePurchase(optionNumber, quantity, paidAmount, commissionPaid);
     }
 
     void applyValidatedExecutedPurchase(
@@ -100,12 +121,38 @@ public final class UserAccount {
             int optionNumber,
             long quantity,
             double paidAmount) {
+        applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount, 0.0);
+    }
+
+    void applyValidatedExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
         MarketPosition position = positionsByEventId.get(eventId);
         if (position == null) {
             position = new MarketPosition(eventId);
             positionsByEventId.put(eventId, position);
         }
-        position.applyValidatedPurchase(optionNumber, quantity, paidAmount);
+        position.applyValidatedPurchase(
+                optionNumber, quantity, paidAmount, commissionPaid);
+    }
+
+    void validateAdditionalCommission(
+            int eventId,
+            int optionNumber,
+            double commissionPaid) {
+        MarketPosition position = requirePosition(eventId);
+        position.validateAdditionalCommission(optionNumber, commissionPaid);
+    }
+
+    void applyValidatedAdditionalCommission(
+            int eventId,
+            int optionNumber,
+            double commissionPaid) {
+        MarketPosition position = requirePosition(eventId);
+        position.applyValidatedAdditionalCommission(optionNumber, commissionPaid);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {
@@ -126,6 +173,15 @@ public final class UserAccount {
         return position.getAmountPaidForOption(optionNumber);
     }
 
+    public double getCommissionPaidForOption(int eventId, int optionNumber) {
+        MarketPosition position = getPosition(eventId);
+        if (position == null) {
+            requirePositiveOptionNumber(optionNumber);
+            return 0.0;
+        }
+        return position.getCommissionPaidForOption(optionNumber);
+    }
+
     public long getTotalShares(int eventId) {
         MarketPosition position = getPosition(eventId);
         return position == null ? 0L : position.getTotalShares();
@@ -134,6 +190,11 @@ public final class UserAccount {
     public double getTotalAmountPaid(int eventId) {
         MarketPosition position = getPosition(eventId);
         return position == null ? 0.0 : position.getTotalAmountPaid();
+    }
+
+    public double getTotalCommissionPaid(int eventId) {
+        MarketPosition position = getPosition(eventId);
+        return position == null ? 0.0 : position.getTotalCommissionPaid();
     }
 
     public Set<Integer> getPositionEventIds() {
@@ -151,6 +212,15 @@ public final class UserAccount {
     private MarketPosition getPosition(int eventId) {
         requirePositiveEventId(eventId);
         return positionsByEventId.get(eventId);
+    }
+
+    private MarketPosition requirePosition(int eventId) {
+        MarketPosition position = getPosition(eventId);
+        if (position == null) {
+            throw new IllegalStateException(
+                    "Cannot record commission without an existing market position.");
+        }
+        return position;
     }
 
     private static void requirePositiveEventId(int eventId) {

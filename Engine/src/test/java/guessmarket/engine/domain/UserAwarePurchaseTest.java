@@ -41,6 +41,7 @@ class UserAwarePurchaseTest {
                 1.0e-12);
         assertEquals(3L, fixture.buyer.getSharesForOption(1, 1));
         assertEquals(quote.shareCost(), fixture.buyer.getAmountPaidForOption(1, 1));
+        assertEquals(quote.commission(), fixture.buyer.getCommissionPaidForOption(1, 1));
         assertEquals(3L, fixture.event.findOption(1).getPurchasedShares());
         assertEquals(1, fixture.event.getTrades().size());
         assertEquals(Optional.of("Buyer"), fixture.event.getTrades().getFirst().buyerName());
@@ -48,7 +49,7 @@ class UserAwarePurchaseTest {
     }
 
     @Test
-    void commissionIsNotStoredInEventAccountOrPosition() {
+    void commissionIsStoredInPositionButNotEventAccount() {
         PurchaseFixture fixture = createOpenedFixture(10, CommissionType.ON_PURCHASE, 500.0, 500.0);
         PurchaseQuote quote = fixture.event.quotePurchase(1, 4L);
         double eventBefore = fixture.event.getAccount().getBalance();
@@ -61,6 +62,7 @@ class UserAwarePurchaseTest {
                 1.0e-12);
         assertEquals(0.0, fixture.event.getAccount().getTotalCommissionCollected());
         assertEquals(quote.shareCost(), fixture.buyer.getTotalAmountPaid(1), 1.0e-12);
+        assertEquals(quote.commission(), fixture.buyer.getTotalCommissionPaid(1), 1.0e-12);
     }
 
     @Test
@@ -77,6 +79,9 @@ class UserAwarePurchaseTest {
                 1.0e-12);
         assertEquals(4L, fixture.marketMaker.getSharesForOption(1, 1));
         assertEquals(quote.shareCost(), fixture.marketMaker.getAmountPaidForOption(1, 1));
+        assertEquals(
+                quote.commission(),
+                fixture.marketMaker.getCommissionPaidForOption(1, 1));
         assertOutcomeMatchesQuote(outcome, quote);
     }
 
@@ -274,6 +279,30 @@ class UserAwarePurchaseTest {
     }
 
     @Test
+    void commissionOverflowLeavesEntireTransactionUnchanged() {
+        PurchaseFixture fixture = createOpenedFixture(
+                10,
+                CommissionType.ON_PURCHASE,
+                100.0,
+                100.0,
+                new FixedHighCostMechanism());
+        fixture.buyer.recordExecutedPurchase(1, 1, 1L, 1.0, Double.MAX_VALUE);
+        PurchaseQuote quote = fixture.event.quotePurchase(1, 3L);
+        assertTrue(Double.isFinite(quote.shareCost()));
+        assertTrue(Double.isFinite(quote.commission()));
+        assertTrue(Double.isFinite(quote.totalCharge()));
+        PurchaseState state = captureState(fixture);
+
+        EngineException exception = assertThrows(
+                EngineException.class,
+                () -> fixture.system.purchaseShares("Buyer", 1, 1, 3L));
+
+        assertEquals(ErrorCode.ARITHMETIC_OVERFLOW, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("commission paid"));
+        assertStateEquals(state, fixture);
+    }
+
+    @Test
     void legacyPurchaseStillCreditsCommissionToEventAndHasNoBuyer() {
         MarketEvent event = createLegacyActiveEvent(1, 5, CommissionType.ON_PURCHASE, 20.0);
         PurchaseQuote quote = event.quotePurchase(1, 3L);
@@ -397,7 +426,8 @@ class UserAwarePurchaseTest {
                 fixture.event.getTrades().size(),
                 fixture.buyer.hasPosition(1),
                 fixture.buyer.getSharesForOption(1, 1),
-                fixture.buyer.getAmountPaidForOption(1, 1));
+                fixture.buyer.getAmountPaidForOption(1, 1),
+                fixture.buyer.getCommissionPaidForOption(1, 1));
     }
 
     private static void assertStateEquals(PurchaseState expected, PurchaseFixture actual) {
@@ -416,6 +446,9 @@ class UserAwarePurchaseTest {
         assertEquals(expected.hasPosition, actual.buyer.hasPosition(1));
         assertEquals(expected.positionShares, actual.buyer.getSharesForOption(1, 1));
         assertEquals(expected.positionPaid, actual.buyer.getAmountPaidForOption(1, 1));
+        assertEquals(
+                expected.positionCommission,
+                actual.buyer.getCommissionPaidForOption(1, 1));
     }
 
     private static void assertOutcomeMatchesQuote(PurchaseOutcome outcome, PurchaseQuote quote) {
@@ -446,7 +479,8 @@ class UserAwarePurchaseTest {
             int tradeCount,
             boolean hasPosition,
             long positionShares,
-            double positionPaid) {
+            double positionPaid,
+            double positionCommission) {
     }
 
     private static final class FixedHighCostMechanism implements LmsrTradingOperations {
