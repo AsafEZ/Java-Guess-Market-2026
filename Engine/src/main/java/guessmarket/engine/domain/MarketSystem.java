@@ -37,6 +37,12 @@ public final class MarketSystem {
         return List.copyOf(usersByName.values());
     }
 
+    public void assignMarketMaker(int eventId, String userName) {
+        MarketEvent event = getEvent(eventId);
+        User user = getUser(userName);
+        event.assignMarketMaker(user.getName());
+    }
+
     public void addEvent(MarketEvent event) {
         if (eventsById.putIfAbsent(event.getId(), event) != null) {
             throw new EngineException(

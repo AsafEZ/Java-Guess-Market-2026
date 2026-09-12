@@ -25,6 +25,7 @@ public final class MarketEvent {
     private Integer winningOptionNumber;
     private long nextTradeNumber = 1;
     private final TradingMechanism tradingMechanism;
+    private String marketMakerName;
 
     public MarketEvent(
             int id,
@@ -194,6 +195,40 @@ public final class MarketEvent {
 
     public Integer getWinningOptionNumber() {
         return winningOptionNumber;
+    }
+
+    public boolean hasMarketMaker() {
+        return marketMakerName != null;
+    }
+
+    void assignMarketMaker(String userName) {
+        if (hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_ALREADY_ASSIGNED,
+                    "Event " + id + " already has a Market Maker.");
+        }
+        marketMakerName = normalizeUserName(userName);
+    }
+
+    public String getMarketMakerName() {
+        if (!hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + id + " does not have a Market Maker.");
+        }
+        return marketMakerName;
+    }
+
+    public boolean isMarketMaker(String userName) {
+        return normalizeUserName(userName).equals(marketMakerName);
+    }
+
+    private static String normalizeUserName(String userName) {
+        String normalizedName = Objects.requireNonNull(userName, "userName").trim();
+        if (normalizedName.isEmpty()) {
+            throw new IllegalArgumentException("User name cannot be blank.");
+        }
+        return normalizedName;
     }
 
     public TradingMechanism getTradingMechanism() {return tradingMechanism;}

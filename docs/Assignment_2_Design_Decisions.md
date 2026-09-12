@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 5 are completed.
+- Status: In progress; Subtasks 1 through 6 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -127,7 +127,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 3. Completed: Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
 4. Completed: Add `MarketPosition` with per-option holdings and commission-free `amountPaid`; separate commission tracking remains deferred until commission-aware trade integration.
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
-6. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
+6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 7. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
 8. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
 9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
@@ -229,4 +229,27 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added account-owned positions, immutable event-id snapshots, scalar position queries, and user delegation. `MarketPosition` itself was not changed, and no event, market system, trading, Engine API, DTO, XML/JAXB, ConsoleUI, or JavaFX integration was added.
 - Test result: Engine compilation passed; Maven ran 57 JUnit 5 tests with 0 failures and 0 errors, including 26 `UserAccountTest` tests and 8 `UserTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 6: Market Maker Assignment
+
+- Status: Completed.
+- Goal: Assign one existing system user as the Market Maker of an existing event while keeping the relationship independent of funding, commission, lifecycle authorization, and loading.
+- Role decision: Market Maker is a role held by a `User` for a particular event, not a `User` subclass and not a separate account. The same user may therefore be assigned to multiple events without duplicating identity or financial state.
+- Reference decision: `MarketEvent` stores only the canonical user name as a private string. It never stores or returns a `User`; `MarketSystem` resolves the requested name through its user registry and delegates the canonical `User.getName()` value to the event. No parallel event-to-Market-Maker map exists.
+- Assignment lifecycle: Assignment is one-time. Any second attempt, including reassignment to the same user, raises `MARKET_MAKER_ALREADY_ASSIGNED` and preserves the original name. This avoids both silent replacement and ambiguous idempotent behavior.
+- Unassigned-state decision: The existing constructor and Assignment 1 factory remain unchanged, and a newly created legacy event may temporarily have no Market Maker. `hasMarketMaker()` reports that state; `getMarketMakerName()` raises `MARKET_MAKER_NOT_ASSIGNED` when no assignment exists; `isMarketMaker(String)` returns false for a valid name before assignment.
+- Assignment 2 loading boundary: The assignment document requires every event in a valid Assignment 2 input file to have exactly one Market Maker, but does not require that relationship to be a constructor parameter. That completeness check remains deferred to the Assignment 2 XML/JAXB atomic-loading subtask.
+- API decision: `MarketEvent` adds public `hasMarketMaker()`, `getMarketMakerName()`, and `isMarketMaker(String)`, plus package-private one-time `assignMarketMaker(String)` for domain orchestration. `MarketSystem` adds public `assignMarketMaker(int, String)`, which resolves the event first, resolves the user second, and delegates the canonical name.
+- Identity decision: Market Maker comparisons remain case-sensitive and trim external whitespace. `MarketSystem` supplies the normalized name already owned by `User`, so the event stores a canonical registry identity.
+- Error decision: Existing `EVENT_NOT_FOUND` and `USER_NOT_FOUND` are reused. New `MARKET_MAKER_ALREADY_ASSIGNED` and `MARKET_MAKER_NOT_ASSIGNED` codes describe assignment lifecycle failures.
+- Deferred behavior: This subtask does not fund an event, debit or credit a user, transfer commission, authorize opening or closing, change purchase or settlement flows, update positions, expose Engine APIs or DTOs, or alter XML/JAXB or UI code.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketMakerAssignmentTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added a one-time, name-based Market Maker relationship while preserving existing constructors, factory behavior, and Assignment 1 event operations. The event contains no `User` reference and assignment leaves user balances, status, and positions unchanged.
+- Test result: Engine compilation passed; Maven ran 70 JUnit 5 tests with 0 failures and 0 errors, including 13 `MarketMakerAssignmentTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
