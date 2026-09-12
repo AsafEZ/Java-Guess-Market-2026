@@ -122,7 +122,7 @@
 
 Each subtask must compile, pass the relevant tests and Assignment 1 regression checks, update this document, show its diff, and produce one focused commit before the next subtask begins.
 
-1. Add `UserStatus` and `UserAccount`, including balance transitions, blocking behavior, and focused unit tests.
+1. Completed: Add `UserStatus` and `UserAccount`, including balance transitions, blocking behavior, and focused unit tests.
 2. Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
 3. Add `MarketPosition` with per-option holdings, commission-free `amountPaid`, separate `commissionPaid`, and position-level tests.
 4. Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
@@ -137,4 +137,23 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 
 - Documentation result: The selected ownership model, Assignment 1 current state, Assignment 2 target state, constraints, and ordered implementation plan are recorded. No production code, XSD, or JAXB files were changed.
 - Test result: Not run because this subtask changes documentation only.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 1: User Status and Account
+
+- Status: Completed.
+- Goal: Introduce an independent user-account domain model without connecting it to `User`, `MarketSystem`, `MarketEvent`, positions, Market Maker assignment, or trading mechanisms.
+- Rationale: Balance ownership and blocked-account behavior need a focused, tested model before users and market positions are introduced.
+- API decision: `UserAccount` is final and exposes `credit(double)`, `debit(double)`, `canAfford(double)`, `getBalance()`, and `getStatus()`. There is no public status setter, unblock operation, manual top-up operation, event reference, or position state.
+- Validation decision: Initial balance and operation amounts must be positive and finite. Invalid numeric input is rejected with `IllegalArgumentException` before state changes. A debit from an already blocked account is rejected with `EngineException` and `USER_ACCOUNT_BLOCKED`. A non-finite arithmetic result is rejected with `ARITHMETIC_OVERFLOW` before state changes.
+- Blocking and credit behavior: A debit that makes an active account negative completes and changes its status to `BLOCKED`. Further debits are rejected. Credits remain permitted for system-driven payouts but never return a blocked account to `ACTIVE`. `canAfford` is read-only and returns false for blocked accounts even when their credited balance covers the requested amount.
+- Changed files:
+  - `Engine/pom.xml`
+  - `Engine/src/main/java/guessmarket/engine/enums/UserStatus.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/UserAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserAccountTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added `ACTIVE` and `BLOCKED` statuses, the standalone account model, the focused blocked-account error code, and JUnit 5 test support. No user, event, position, Market Maker, or trading integration was added.
+- Test result: Engine compilation passed; Maven ran 15 JUnit 5 tests with 0 failures and 0 errors; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
