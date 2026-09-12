@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 3 are completed.
+- Status: In progress; Subtasks 1 through 4 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -125,7 +125,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 1. Completed: Add `UserStatus` and `UserAccount`, including balance transitions, blocking behavior, and focused unit tests.
 2. Completed: Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
 3. Completed: Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
-4. Add `MarketPosition` with per-option holdings, commission-free `amountPaid`, separate `commissionPaid`, and position-level tests.
+4. Completed: Add `MarketPosition` with per-option holdings and commission-free `amountPaid`; separate commission tracking remains deferred until commission-aware trade integration.
 5. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 6. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
 7. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
@@ -189,4 +189,22 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the standalone user registry and focused validation while preserving Assignment 1 event ownership and behavior. No default user, positions, Market Maker assignment, trading integration, Engine API, DTO, XML/JAXB, ConsoleUI, or JavaFX change was introduced.
 - Test result: Engine compilation passed; Maven ran 31 JUnit 5 tests with 0 failures and 0 errors, including 9 `MarketSystemTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 4: Market Position Model
+
+- Status: Completed.
+- Goal: Add a standalone domain model for one user's share holdings and purchase amounts in one event, without connecting it to accounts, events, trading, XML, or UI.
+- Rationale: A position is scoped to one event because option numbers and holdings have meaning only within that event. `UserAccount` will later own positions keyed by event id so each user's private financial and holding state has one owner and is not duplicated in `MarketEvent`.
+- Holdings structure: `MarketPosition` stores a `LinkedHashMap<Integer, OptionHolding>`. The private immutable `OptionHolding` value keeps share quantity and amount paid together, avoiding parallel maps that could become inconsistent. Unknown positive option numbers report zero shares and zero amount.
+- Paid amount decision: `paidAmount` records only the share purchase price and excludes commission, as established for Stage 2. Commission is not accepted or stored by this subtask's minimal purchase-recording API; separate commission tracking remains deferred until commission-aware trade integration supplies that value.
+- Invariants: Event ids and option numbers are positive; purchase quantities and paid amounts are positive; paid amounts are finite. Share addition uses exact `long` arithmetic, amount addition must remain finite, and all updated values are calculated before replacing a holding so rejected input or overflow leaves the position unchanged.
+- API decision: `MarketPosition` is final and exposes `MarketPosition(int)`, `recordPurchase(int, long, double)`, `getEventId()`, `getSharesForOption(int)`, `getAmountPaidForOption(int)`, `getTotalShares()`, `getTotalAmountPaid()`, and `getOptionNumbers()`. Option numbers are returned as an immutable insertion-ordered snapshot; the private holding type and map are not exposed.
+- Error decision: Invalid arguments use `IllegalArgumentException`, matching existing domain validation. Existing `ARITHMETIC_OVERFLOW` is reused for `long` or finite-`double` accumulation overflow, so no new error code was required.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketPosition.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketPositionTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the isolated position model and focused tests for independent option holdings, totals, validation, overflow atomicity, zero-value queries, and immutable snapshots. No account ownership, user/event linkage, trading, DTO, XML/JAXB, ConsoleUI, or JavaFX integration was introduced.
+- Test result: Engine compilation passed; Maven ran 45 JUnit 5 tests with 0 failures and 0 errors, including 14 `MarketPositionTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
