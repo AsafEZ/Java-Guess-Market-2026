@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 7B and Subtask 8A are completed.
+- Status: In progress; Subtasks 1 through 8A and Subtask 8B.1 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -129,7 +129,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
-8. In progress: Subtask 8A separates pure LMSR purchase quoting from execution; Subtask 8B will make purchase orchestration user-aware and update the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
+8. In progress: Subtask 8A separates pure LMSR purchase quoting from execution; Subtask 8B.1 adds transaction prevalidation/apply primitives and optional Trade buyer identity; Subtask 8B.2 will compose the user-aware purchase transaction.
 9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
 10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
 11. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls.
@@ -320,4 +320,28 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added pure purchase pricing and immutable quote construction, moved aggregate share mutation out of LMSR, refactored legacy execution to consume the quote, and added pre-mutation numeric validation without integrating users or changing the public Engine API.
 - Test result: Engine compilation passed; Maven ran 100 JUnit 5 tests with 0 failures and 0 errors, including 14 `PurchaseQuoteTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 8B.1: Purchase Transaction Primitives and Buyer Identity
+
+- Status: Completed.
+- Goal: Add non-mutating prevalidation and prevalidated apply primitives for every aggregate that will participate in a user-aware LMSR purchase, and add safely exposed buyer identity to `Trade`, without composing the transaction in `MarketSystem` yet.
+- Rationale: The transaction must discover all expected domain failures before its first mutation. Separating package-private validation from package-private apply lets the orchestrator validate balances, holdings, aggregate shares, and event-account capacity before committing already-approved values.
+- Account primitives: `UserAccount` and `User` add package-private validation and apply delegation for debit and credit. Debit validation permits a finite overdraft for an active account; applying it sets `BLOCKED` from the resulting balance. Credit remains passive and does not unblock. Existing public `credit` and `debit` retain their behavior by calling both phases together.
+- Position primitives: `MarketPosition` separates purchase validation from application. `UserAccount` and `User` provide matching executed-purchase validation and apply delegation. Validation of a first event position uses a temporary position and does not insert an empty position into the account map.
+- Event primitives: `MarketOption` separates share-addition overflow validation from application. `EventAccount` adds separate share-cost-only validation and application, leaving the legacy `recordPurchase(shareCost, commission)` path unchanged for Assignment 1.
+- Trade identity decision: `Trade` adds immutable `Optional<String> buyerName`. The existing seven-argument constructor remains and produces `Optional.empty()` for legacy Assignment 1 trades. The new constructor requires a non-null, non-blank buyer name, trims it, and stores `Optional.of(canonicalName)` for Assignment 2 trades. No empty or fabricated name is used.
+- Trade validation: Trade number, option number, and quantity must be positive; monetary values must be finite and non-negative; total paid must equal share cost plus commission. A user-aware `Trade` can therefore be constructed and validated before transaction mutations begin.
+- API boundary: All transaction primitives are package-private and remain inside the domain package. Public account behavior, `GuessMarketEngine`, DTOs, XML/JAXB, and UI code are unchanged. `MarketSystem.purchaseShares` is intentionally deferred to Subtask 8B.2.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/UserAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/User.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketPosition.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketOption.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/EventAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/Trade.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/PurchaseTransactionPrimitivesTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added pure prevalidation and prevalidated apply operations across the future purchase boundary, plus explicit optional buyer identity with a compatible legacy Trade constructor. No user-aware purchase orchestration or money transfer was added.
+- Test result: Engine compilation passed; Maven ran 110 JUnit 5 tests with 0 failures and 0 errors, including 10 `PurchaseTransactionPrimitivesTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.

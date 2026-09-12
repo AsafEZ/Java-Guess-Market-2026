@@ -21,11 +21,25 @@ public final class UserAccount {
     }
 
     public void credit(double amount) {
+        validateCredit(amount);
+        applyValidatedCredit(amount);
+    }
+
+    void validateCredit(double amount) {
         requirePositiveFinite(amount, "amount");
-        balance = finiteResult(balance + amount);
+        finiteResult(balance + amount);
+    }
+
+    void applyValidatedCredit(double amount) {
+        balance += amount;
     }
 
     public void debit(double amount) {
+        validateDebit(amount);
+        applyValidatedDebit(amount);
+    }
+
+    void validateDebit(double amount) {
         requirePositiveFinite(amount, "amount");
 
         if (status == UserStatus.BLOCKED) {
@@ -35,9 +49,11 @@ public final class UserAccount {
             );
         }
 
-        double updatedBalance = finiteResult(balance - amount);
-        balance = updatedBalance;
+        finiteResult(balance - amount);
+    }
 
+    void applyValidatedDebit(double amount) {
+        balance -= amount;
         if (balance < 0.0) {
             status = UserStatus.BLOCKED;
         }
@@ -58,17 +74,38 @@ public final class UserAccount {
             int optionNumber,
             long quantity,
             double paidAmount) {
+        validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+        applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+    }
+
+    void validateExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount) {
         requirePositiveEventId(eventId);
 
         MarketPosition position = positionsByEventId.get(eventId);
         if (position == null) {
             MarketPosition newPosition = new MarketPosition(eventId);
-            newPosition.recordPurchase(optionNumber, quantity, paidAmount);
-            positionsByEventId.put(eventId, newPosition);
+            newPosition.validatePurchase(optionNumber, quantity, paidAmount);
             return;
         }
 
-        position.recordPurchase(optionNumber, quantity, paidAmount);
+        position.validatePurchase(optionNumber, quantity, paidAmount);
+    }
+
+    void applyValidatedExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount) {
+        MarketPosition position = positionsByEventId.get(eventId);
+        if (position == null) {
+            position = new MarketPosition(eventId);
+            positionsByEventId.put(eventId, position);
+        }
+        position.applyValidatedPurchase(optionNumber, quantity, paidAmount);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {

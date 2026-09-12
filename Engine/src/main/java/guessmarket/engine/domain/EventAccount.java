@@ -55,6 +55,19 @@ public final class EventAccount {
         totalCommissionCollected += commission;
     }
 
+    void validateShareCostCredit(double shareCost) {
+        requireFiniteNonNegative(shareCost, "shareCost");
+        if (!Double.isFinite(balance + shareCost)) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "The share cost exceeds the event account's numeric range.");
+        }
+    }
+
+    void applyValidatedShareCostCredit(double shareCost) {
+        balance += shareCost;
+    }
+
     public void settleClosedEvent(double grossPayout, double commission) {
         double netPayout = grossPayout - commission;
         balance -= netPayout;

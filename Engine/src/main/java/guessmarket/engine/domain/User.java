@@ -43,6 +43,22 @@ public final class User {
         return account.canAfford(amount);
     }
 
+    void validateCredit(double amount) {
+        account.validateCredit(amount);
+    }
+
+    void applyValidatedCredit(double amount) {
+        account.applyValidatedCredit(amount);
+    }
+
+    void validateDebit(double amount) {
+        account.validateDebit(amount);
+    }
+
+    void applyValidatedDebit(double amount) {
+        account.applyValidatedDebit(amount);
+    }
+
     public boolean hasPosition(int eventId) {
         return account.hasPosition(eventId);
     }
@@ -53,6 +69,22 @@ public final class User {
             long quantity,
             double paidAmount) {
         account.recordExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+    }
+
+    void validateExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount) {
+        account.validateExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+    }
+
+    void applyValidatedExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount) {
+        account.applyValidatedExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {

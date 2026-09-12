@@ -21,6 +21,11 @@ public final class MarketPosition {
     }
 
     public void recordPurchase(int optionNumber, long quantity, double paidAmount) {
+        validatePurchase(optionNumber, quantity, paidAmount);
+        applyValidatedPurchase(optionNumber, quantity, paidAmount);
+    }
+
+    void validatePurchase(int optionNumber, long quantity, double paidAmount) {
         requirePositiveOptionNumber(optionNumber);
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive.");
@@ -30,12 +35,19 @@ public final class MarketPosition {
         OptionHolding current = holdingsByOption.getOrDefault(
                 optionNumber,
                 new OptionHolding(0L, 0.0));
-        long updatedShares = addShares(current.shares(), quantity);
-        double updatedAmountPaid = finiteAmount(current.amountPaid() + paidAmount);
+        addShares(current.shares(), quantity);
+        finiteAmount(current.amountPaid() + paidAmount);
+    }
 
+    void applyValidatedPurchase(int optionNumber, long quantity, double paidAmount) {
+        OptionHolding current = holdingsByOption.getOrDefault(
+                optionNumber,
+                new OptionHolding(0L, 0.0));
         holdingsByOption.put(
                 optionNumber,
-                new OptionHolding(updatedShares, updatedAmountPaid));
+                new OptionHolding(
+                        current.shares() + quantity,
+                        current.amountPaid() + paidAmount));
     }
 
     public int getEventId() {
