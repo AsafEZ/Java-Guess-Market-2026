@@ -7,9 +7,35 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public final class MarketSystem {
     private final Map<Integer, MarketEvent> eventsById = new LinkedHashMap<>();
+    private final Map<String, User> usersByName = new LinkedHashMap<>();
+
+    public void addUser(User user) {
+        Objects.requireNonNull(user, "user");
+        if (usersByName.putIfAbsent(user.getName(), user) != null) {
+            throw new EngineException(
+                    ErrorCode.DUPLICATE_USER_NAME,
+                    "Duplicate user name: " + user.getName() + ".");
+        }
+    }
+
+    public User getUser(String userName) {
+        String normalizedName = Objects.requireNonNull(userName, "userName").trim();
+        User user = usersByName.get(normalizedName);
+        if (user == null) {
+            throw new EngineException(
+                    ErrorCode.USER_NOT_FOUND,
+                    "User '" + normalizedName + "' does not exist.");
+        }
+        return user;
+    }
+
+    public List<User> getAllUsers() {
+        return List.copyOf(usersByName.values());
+    }
 
     public void addEvent(MarketEvent event) {
         if (eventsById.putIfAbsent(event.getId(), event) != null) {

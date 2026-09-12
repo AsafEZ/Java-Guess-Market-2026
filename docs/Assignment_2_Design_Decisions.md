@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 and 2 are completed.
+- Status: In progress; Subtasks 1 through 3 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -124,8 +124,8 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 
 1. Completed: Add `UserStatus` and `UserAccount`, including balance transitions, blocking behavior, and focused unit tests.
 2. Completed: Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
-3. Add `MarketPosition` with per-option holdings, commission-free `amountPaid`, separate `commissionPaid`, and position-level tests.
-4. Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
+3. Completed: Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
+4. Add `MarketPosition` with per-option holdings, commission-free `amountPaid`, separate `commissionPaid`, and position-level tests.
 5. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 6. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
 7. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
@@ -171,4 +171,22 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the standalone user entity and focused tests for name validation and trimming, initial account state, delegated account behavior, and absence of duplicated or publicly exposed account state. No integration with other Engine components was added.
 - Test result: Engine compilation passed; Maven ran 22 JUnit 5 tests with 0 failures and 0 errors, including 7 `UserTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 3: Market System User Registry
+
+- Status: Completed.
+- Goal: Let `MarketSystem` own, register, enumerate, and resolve users by unique name without connecting users to events, trading, XML, or UI.
+- Rationale: `MarketSystem` is already the aggregate that owns the event registry and is the planned owner of all loaded system state. Keeping the user registry there provides one authoritative lookup boundary for future Market Maker and trading orchestration.
+- Identity decision: Registry keys use the trimmed user name stored by `User`. Lookup names are trimmed and remain case-sensitive, so `Alice` and `alice` are distinct while ` Alice ` resolves to `Alice`.
+- Data structure decision: Users are stored in `LinkedHashMap<String, User>` to provide constant-time name lookup and deterministic insertion order for tests and future presentation.
+- API decision: `MarketSystem` adds `addUser(User)`, `getUser(String)`, and `getAllUsers()`. Duplicate registration raises `EngineException` with `DUPLICATE_USER_NAME`; missing lookup raises `EngineException` with `USER_NOT_FOUND`.
+- Encapsulation decision: The internal map is never exposed. `getAllUsers()` returns an unmodifiable snapshot through `List.copyOf`, and the existing event methods, event-counting `size()`, constructor behavior, and loading flow remain unchanged.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketSystemTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the standalone user registry and focused validation while preserving Assignment 1 event ownership and behavior. No default user, positions, Market Maker assignment, trading integration, Engine API, DTO, XML/JAXB, ConsoleUI, or JavaFX change was introduced.
+- Test result: Engine compilation passed; Maven ran 31 JUnit 5 tests with 0 failures and 0 errors, including 9 `MarketSystemTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
