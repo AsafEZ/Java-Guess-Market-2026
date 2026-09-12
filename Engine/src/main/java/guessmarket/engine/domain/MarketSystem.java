@@ -82,6 +82,62 @@ public final class MarketSystem {
         }
     }
 
+    public synchronized PurchaseOutcome purchaseShares(
+            String userName,
+            int eventId,
+            int optionNumber,
+            long quantity) {
+        User buyer = getUser(userName);
+        MarketEvent event = getEvent(eventId);
+
+        event.requireActive();
+        if (!event.hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + eventId + " does not have a Market Maker.");
+        }
+
+        User marketMaker = getUser(event.getMarketMakerName());
+        if (buyer.getStatus() == UserStatus.BLOCKED) {
+            throw new EngineException(
+                    ErrorCode.USER_ACCOUNT_BLOCKED,
+                    "A blocked user account cannot purchase shares.");
+        }
+
+        PurchaseQuote quote = event.quotePurchase(optionNumber, quantity);
+        boolean buyerIsMarketMaker = buyer == marketMaker;
+        double buyerDebit = buyerIsMarketMaker
+                ? quote.shareCost()
+                : quote.totalCharge();
+
+        if (buyerDebit > 0.0) {
+            buyer.validateDebit(buyerDebit);
+        }
+        if (!buyerIsMarketMaker && quote.commission() > 0.0) {
+            marketMaker.validateCredit(quote.commission());
+        }
+        buyer.validateExecutedPurchase(
+                eventId,
+                optionNumber,
+                quantity,
+                quote.shareCost());
+        MarketEvent.PreparedPurchase preparedPurchase =
+                event.prepareUserPurchase(quote, buyer.getName());
+
+        if (buyerDebit > 0.0) {
+            buyer.applyValidatedDebit(buyerDebit);
+        }
+        if (!buyerIsMarketMaker && quote.commission() > 0.0) {
+            marketMaker.applyValidatedCredit(quote.commission());
+        }
+        buyer.applyValidatedExecutedPurchase(
+                eventId,
+                optionNumber,
+                quantity,
+                quote.shareCost());
+        return event.applyPreparedUserPurchase(preparedPurchase);
+    }
+
     public void addEvent(MarketEvent event) {
         if (eventsById.putIfAbsent(event.getId(), event) != null) {
             throw new EngineException(

@@ -93,8 +93,10 @@ public final class MarketEvent {
             long quantity) {
         PurchaseQuote quote = quotePurchase(optionNumber, quantity);
         MarketOption selected = findOption(quote.optionNumber());
+        selected.validateAddShares(quote.quantity());
+        account.validatePurchase(quote.shareCost(), quote.commission());
 
-        selected.addShares(quote.quantity());
+        selected.applyValidatedAddShares(quote.quantity());
         account.recordPurchase(quote.shareCost(), quote.commission());
 
         trades.add(new Trade(
@@ -139,8 +141,55 @@ public final class MarketEvent {
                 quantity,
                 shareCost,
                 commission);
-        account.validatePurchase(quote.shareCost(), quote.commission());
         return quote;
+    }
+
+    PreparedPurchase prepareUserPurchase(PurchaseQuote quote, String buyerName) {
+        requireActive();
+        Objects.requireNonNull(quote, "quote");
+        if (quote.eventId() != id) {
+            throw new IllegalArgumentException("Purchase quote belongs to a different event.");
+        }
+
+        MarketOption selected = findOption(quote.optionNumber());
+        selected.validateAddShares(quote.quantity());
+        account.validateShareCostCredit(quote.shareCost());
+
+        long followingTradeNumber;
+        try {
+            followingTradeNumber = Math.incrementExact(nextTradeNumber);
+        } catch (ArithmeticException exception) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "The event trade number exceeds the supported range.",
+                    exception);
+        }
+
+        Trade trade = new Trade(
+                nextTradeNumber,
+                quote.optionNumber(),
+                selected.getName(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge(),
+                buyerName);
+        return new PreparedPurchase(selected, quote, trade, followingTradeNumber);
+    }
+
+    PurchaseOutcome applyPreparedUserPurchase(PreparedPurchase preparedPurchase) {
+        preparedPurchase.selectedOption.applyValidatedAddShares(
+                preparedPurchase.quote.quantity());
+        account.applyValidatedShareCostCredit(preparedPurchase.quote.shareCost());
+        trades.add(preparedPurchase.trade);
+        nextTradeNumber = preparedPurchase.followingTradeNumber;
+
+        return new PurchaseOutcome(
+                preparedPurchase.quote.optionNumber(),
+                preparedPurchase.quote.quantity(),
+                preparedPurchase.quote.shareCost(),
+                preparedPurchase.quote.commission(),
+                preparedPurchase.quote.totalCharge());
     }
 
     public CloseOutcome close(int optionNumber) {
@@ -179,7 +228,7 @@ public final class MarketEvent {
                 );
     }
 
-    private void requireActive() {
+    void requireActive() {
         if (status == EventStatus.NOT_STARTED) {
             throw new EngineException(
                     ErrorCode.EVENT_NOT_STARTED,
@@ -318,5 +367,23 @@ public final class MarketEvent {
 
     public TradingMethod getTradingMethod() {return tradingMechanism.getTradingMethod();}
 
+
+    static final class PreparedPurchase {
+        private final MarketOption selectedOption;
+        private final PurchaseQuote quote;
+        private final Trade trade;
+        private final long followingTradeNumber;
+
+        private PreparedPurchase(
+                MarketOption selectedOption,
+                PurchaseQuote quote,
+                Trade trade,
+                long followingTradeNumber) {
+            this.selectedOption = selectedOption;
+            this.quote = quote;
+            this.trade = trade;
+            this.followingTradeNumber = followingTradeNumber;
+        }
+    }
 
 }
