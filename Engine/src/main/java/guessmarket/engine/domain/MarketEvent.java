@@ -230,6 +230,36 @@ public final class MarketEvent {
         return requireLmsrOperations().calculateInitialSubsidy();
     }
 
+    void requireCanOpen() {
+        if (status == EventStatus.ACTIVE) {
+            throw new EngineException(
+                    ErrorCode.EVENT_ALREADY_STARTED,
+                    "Event " + id + " is already active.");
+        }
+        if (status == EventStatus.CLOSED) {
+            throw new EngineException(
+                    ErrorCode.EVENT_ALREADY_CLOSED,
+                    "Event " + id + " is already closed.");
+        }
+    }
+
+    void validateInitialFundingCapacity(double amount) {
+        requireCanOpen();
+        account.validateCredit(amount);
+    }
+
+    void openWithFunding(double amount) {
+        requireCanOpen();
+        double requiredSubsidy = getRequiredInitialSubsidy();
+        if (Double.compare(amount, requiredSubsidy) != 0) {
+            throw new IllegalStateException(
+                    "Initial funding no longer matches the required LMSR subsidy.");
+        }
+
+        account.credit(amount);
+        status = EventStatus.ACTIVE;
+    }
+
     public EventAccount getAccount() {
         return account;
     }

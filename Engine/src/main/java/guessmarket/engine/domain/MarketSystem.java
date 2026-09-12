@@ -2,6 +2,7 @@ package guessmarket.engine.domain;
 
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.enums.UserStatus;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,6 +42,44 @@ public final class MarketSystem {
         MarketEvent event = getEvent(eventId);
         User user = getUser(userName);
         event.assignMarketMaker(user.getName());
+    }
+
+    public synchronized void openEvent(int eventId, String userName) {
+        MarketEvent event = getEvent(eventId);
+        User user = getUser(userName);
+
+        event.requireCanOpen();
+        if (!event.hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + eventId + " does not have a Market Maker.");
+        }
+        if (!event.isMarketMaker(user.getName())) {
+            throw new EngineException(
+                    ErrorCode.USER_NOT_MARKET_MAKER,
+                    "The user is not authorized to open event " + eventId + ".");
+        }
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new EngineException(
+                    ErrorCode.USER_ACCOUNT_BLOCKED,
+                    "A blocked user account cannot open an event.");
+        }
+
+        double requiredSubsidy = event.getRequiredInitialSubsidy();
+        if (!user.canAfford(requiredSubsidy)) {
+            throw new EngineException(
+                    ErrorCode.INSUFFICIENT_FUNDS,
+                    "The Market Maker cannot afford the required initial funding.");
+        }
+
+        event.validateInitialFundingCapacity(requiredSubsidy);
+        user.debit(requiredSubsidy);
+        try {
+            event.openWithFunding(requiredSubsidy);
+        } catch (RuntimeException exception) {
+            user.credit(requiredSubsidy);
+            throw exception;
+        }
     }
 
     public void addEvent(MarketEvent event) {

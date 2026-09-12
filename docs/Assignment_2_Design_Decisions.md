@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 6 and Subtask 7A are completed.
+- Status: In progress; Subtasks 1 through 6, Subtask 7A, and Subtask 7B are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -128,7 +128,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 4. Completed: Add `MarketPosition` with per-option holdings and commission-free `amountPaid`; separate commission tracking remains deferred until commission-aware trade integration.
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
-7. In progress: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
+7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
 8. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
 9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
 10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
@@ -271,4 +271,27 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the not-started state, explicit Assignment 2 factory, mechanism-derived required-subsidy accessor, and lifecycle guards. No funding, Market Maker authorization, Engine API, XML/JAXB, trade, position, or UI integration was added.
 - Test result: Engine compilation passed; Maven ran 76 JUnit 5 tests with 0 failures and 0 errors, including 6 `MarketEventLifecycleTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 7B: Authorized and Funded Event Opening
+
+- Status: Completed.
+- Goal: Let the assigned Market Maker fund and open an Assignment 2 event through a user-aware `MarketSystem` operation without changing the public Engine API or the Assignment 1 flow.
+- Opening API: `MarketSystem.openEvent(int eventId, String userName)` resolves the event and user, enforces lifecycle and Market Maker authorization, verifies the account and funding, and coordinates the state changes. `GuessMarketEngine` remains unchanged at this stage.
+- Precondition order: The system resolves the event, resolves the user, requires `NOT_STARTED`, requires an assigned Market Maker, verifies the acting user is that Market Maker, requires an `ACTIVE` user account, obtains the mechanism-derived subsidy, checks `canAfford`, and prevalidates the event-account credit before the first mutation.
+- Funding decision: `LmsrTradingOperations.calculateInitialSubsidy()` remains the single source of the required amount. A not-started event begins with a zero event-account balance; opening debits that exact amount from the Market Maker and credits it once to `EventAccount`. Legacy events are already `ACTIVE` and funded, so the new opening operation rejects them before any debit or credit.
+- Negative-balance exception: Event opening uses a strict affordability precheck. Insufficient funds raise `INSUFFICIENT_FUNDS` without debiting or blocking the Market Maker, unlike the separately documented rule for ordinary user actions that may complete and then block an overdrawn account.
+- Atomicity boundary: `EventAccount` validates a positive finite credit and finite resulting balance before mutation. After the user debit, `MarketEvent.openWithFunding` verifies the event is still openable and the amount still matches the mechanism-derived requirement, credits the event account, and then assigns `ACTIVE`; no operation after the credit can fail. If a runtime failure occurs before the event mutation completes, `MarketSystem` compensates the exact user debit and rethrows the original exception.
+- Double-funding prevention: `EventStatus` is the only lifecycle source of truth. Reopening an `ACTIVE` event raises `EVENT_ALREADY_STARTED`, while reopening a `CLOSED` event uses `EVENT_ALREADY_CLOSED`; both happen before money changes. No funded or rollback flag was introduced.
+- Error decision: Added `EVENT_ALREADY_STARTED`, `INSUFFICIENT_FUNDS`, and `USER_NOT_MARKET_MAKER`. Existing `EVENT_NOT_FOUND`, `USER_NOT_FOUND`, `MARKET_MAKER_NOT_ASSIGNED`, `USER_ACCOUNT_BLOCKED`, `EVENT_ALREADY_CLOSED`, and `ARITHMETIC_OVERFLOW` are reused.
+- Compatibility decision: The existing `MarketEvent` constructor and `MarketSystemFactory` continue to create active, funded Assignment 1 events. The legacy purchase and close APIs, `GuessMarketEngine`, XML/JAXB, DTOs, positions, trades, commissions, and UI modules are unchanged.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/EventAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketEventOpeningTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added authorized, prevalidated LMSR event funding and opening with focused compensation, while leaving user-aware closing and all later trading, settlement, loading, DTO, and UI work deferred.
+- Test result: Engine compilation passed; Maven ran 86 JUnit 5 tests with 0 failures and 0 errors, including 10 `MarketEventOpeningTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
