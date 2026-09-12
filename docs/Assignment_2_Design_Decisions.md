@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: Planned; implementation has not started.
+- Status: In progress; Subtasks 1 and 2 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -123,7 +123,7 @@
 Each subtask must compile, pass the relevant tests and Assignment 1 regression checks, update this document, show its diff, and produce one focused commit before the next subtask begins.
 
 1. Completed: Add `UserStatus` and `UserAccount`, including balance transitions, blocking behavior, and focused unit tests.
-2. Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
+2. Completed: Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
 3. Add `MarketPosition` with per-option holdings, commission-free `amountPaid`, separate `commissionPaid`, and position-level tests.
 4. Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
 5. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
@@ -156,4 +156,19 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added `ACTIVE` and `BLOCKED` statuses, the standalone account model, the focused blocked-account error code, and JUnit 5 test support. No user, event, position, Market Maker, or trading integration was added.
 - Test result: Engine compilation passed; Maven ran 15 JUnit 5 tests with 0 failures and 0 errors; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 2: User Domain Entity
+
+- Status: Completed.
+- Goal: Add `User` as a standalone domain identity with one owned `UserAccount`, without integrating users into the market system, events, trading, XML, or UI.
+- Rationale: The user is the stable identity and owner of private account state. Keeping the account under `User` gives balance and status one clear owner before the registry and trading flows are introduced.
+- API decision: `User` is final and exposes `getName()`, `getBalance()`, `getStatus()`, `credit(double)`, `debit(double)`, and `canAfford(double)`. Its constructor accepts a user name and initial balance. The name is required, trimmed once, rejected when blank, and otherwise preserves case for future case-sensitive registry lookup.
+- Encapsulation decision: `UserAccount` is held in one private final field and is not returned by the public API. `User` delegates account reads and operations instead of duplicating balance or status fields. Registry identity semantics, equality, Market Maker roles, and positions remain outside this subtask.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/User.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the standalone user entity and focused tests for name validation and trimming, initial account state, delegated account behavior, and absence of duplicated or publicly exposed account state. No integration with other Engine components was added.
+- Test result: Engine compilation passed; Maven ran 22 JUnit 5 tests with 0 failures and 0 errors, including 7 `UserTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
