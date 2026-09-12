@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,5 +78,22 @@ class UserTest {
                         || field.getType().equals(Double.class)
                         || field.getType().equals(UserStatus.class)));
         assertThrows(NoSuchMethodException.class, () -> User.class.getMethod("getAccount"));
+    }
+
+    @Test
+    void delegatesPositionBookkeepingAndQueries() {
+        User user = new User("Alice", 100.0);
+
+        user.recordExecutedPurchase(7, 1, 4L, 12.5);
+        user.recordExecutedPurchase(7, 2, 6L, 21.0);
+
+        assertTrue(user.hasPosition(7));
+        assertEquals(4L, user.getSharesForOption(7, 1));
+        assertEquals(12.5, user.getAmountPaidForOption(7, 1));
+        assertEquals(10L, user.getTotalShares(7));
+        assertEquals(33.5, user.getTotalAmountPaid(7));
+        assertEquals(Set.of(7), user.getPositionEventIds());
+        assertEquals(100.0, user.getBalance());
+        assertEquals(UserStatus.ACTIVE, user.getStatus());
     }
 }

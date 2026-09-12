@@ -3,6 +3,7 @@ package guessmarket.engine.domain;
 import guessmarket.engine.enums.UserStatus;
 
 import java.util.Objects;
+import java.util.Set;
 
 public final class User {
     private final String name;
@@ -40,5 +41,37 @@ public final class User {
 
     public boolean canAfford(double amount) {
         return account.canAfford(amount);
+    }
+
+    public boolean hasPosition(int eventId) {
+        return account.hasPosition(eventId);
+    }
+
+    public void recordExecutedPurchase(
+            int eventId,
+            int optionNumber,
+            long quantity,
+            double paidAmount) {
+        account.recordExecutedPurchase(eventId, optionNumber, quantity, paidAmount);
+    }
+
+    public long getSharesForOption(int eventId, int optionNumber) {
+        return account.getSharesForOption(eventId, optionNumber);
+    }
+
+    public double getAmountPaidForOption(int eventId, int optionNumber) {
+        return account.getAmountPaidForOption(eventId, optionNumber);
+    }
+
+    public long getTotalShares(int eventId) {
+        return account.getTotalShares(eventId);
+    }
+
+    public double getTotalAmountPaid(int eventId) {
+        return account.getTotalAmountPaid(eventId);
+    }
+
+    public Set<Integer> getPositionEventIds() {
+        return account.getPositionEventIds();
     }
 }

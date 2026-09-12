@@ -5,6 +5,11 @@ import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -162,6 +167,140 @@ class UserAccountTest {
         assertEquals(ErrorCode.ARITHMETIC_OVERFLOW, exception.getErrorCode());
         assertEquals(Double.MAX_VALUE, account.getBalance());
         assertEquals(UserStatus.ACTIVE, account.getStatus());
+    }
+
+    @Test
+    void newAccountHasNoPositions() {
+        UserAccount account = new UserAccount(100.0);
+
+        assertFalse(account.hasPosition(1));
+        assertTrue(account.getPositionEventIds().isEmpty());
+    }
+
+    @Test
+    void firstExecutedPurchaseCreatesPosition() {
+        UserAccount account = new UserAccount(100.0);
+
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+
+        assertTrue(account.hasPosition(7));
+        assertEquals(4L, account.getSharesForOption(7, 1));
+        assertEquals(12.5, account.getAmountPaidForOption(7, 1));
+    }
+
+    @Test
+    void accumulatesPurchasesInSameEventAndOption() {
+        UserAccount account = new UserAccount(100.0);
+
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+        account.recordExecutedPurchase(7, 1, 3L, 8.25);
+
+        assertEquals(7L, account.getSharesForOption(7, 1));
+        assertEquals(20.75, account.getAmountPaidForOption(7, 1));
+    }
+
+    @Test
+    void tracksMultipleOptionsWithinOneEvent() {
+        UserAccount account = new UserAccount(100.0);
+
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+        account.recordExecutedPurchase(7, 2, 6L, 21.0);
+
+        assertEquals(4L, account.getSharesForOption(7, 1));
+        assertEquals(6L, account.getSharesForOption(7, 2));
+        assertEquals(10L, account.getTotalShares(7));
+        assertEquals(33.5, account.getTotalAmountPaid(7));
+    }
+
+    @Test
+    void keepsPositionsForDifferentEventsSeparate() {
+        UserAccount account = new UserAccount(100.0);
+
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+        account.recordExecutedPurchase(8, 1, 6L, 21.0);
+
+        assertEquals(4L, account.getSharesForOption(7, 1));
+        assertEquals(12.5, account.getAmountPaidForOption(7, 1));
+        assertEquals(6L, account.getSharesForOption(8, 1));
+        assertEquals(21.0, account.getAmountPaidForOption(8, 1));
+        assertEquals(Set.of(7, 8), account.getPositionEventIds());
+    }
+
+    @Test
+    void missingPositionQueriesReturnZero() {
+        UserAccount account = new UserAccount(100.0);
+
+        assertEquals(0L, account.getSharesForOption(7, 1));
+        assertEquals(0.0, account.getAmountPaidForOption(7, 1));
+        assertEquals(0L, account.getTotalShares(7));
+        assertEquals(0.0, account.getTotalAmountPaid(7));
+    }
+
+    @Test
+    void positionEventIdsAreAnImmutableSnapshot() {
+        UserAccount account = new UserAccount(100.0);
+        account.recordExecutedPurchase(7, 1, 1L, 2.0);
+        Set<Integer> eventIds = account.getPositionEventIds();
+
+        assertThrows(UnsupportedOperationException.class, () -> eventIds.add(8));
+
+        account.recordExecutedPurchase(8, 1, 1L, 3.0);
+        assertEquals(Set.of(7), eventIds);
+        assertEquals(Set.of(7, 8), account.getPositionEventIds());
+    }
+
+    @Test
+    void invalidPurchaseDoesNotCreateEmptyPosition() {
+        UserAccount account = new UserAccount(100.0);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(0, 1, 1L, 2.0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(7, 0, 1L, 2.0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(8, 1, 0L, 2.0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(9, 1, 1L, Double.NaN));
+
+        assertTrue(account.getPositionEventIds().isEmpty());
+    }
+
+    @Test
+    void failedAdditionalPurchaseDoesNotChangeExistingPosition() {
+        UserAccount account = new UserAccount(100.0);
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> account.recordExecutedPurchase(7, 1, -1L, 5.0));
+
+        assertEquals(4L, account.getSharesForOption(7, 1));
+        assertEquals(12.5, account.getAmountPaidForOption(7, 1));
+        assertEquals(Set.of(7), account.getPositionEventIds());
+    }
+
+    @Test
+    void positionBookkeepingDoesNotChangeBalanceOrStatus() {
+        UserAccount account = new UserAccount(100.0);
+
+        account.recordExecutedPurchase(7, 1, 4L, 12.5);
+
+        assertEquals(100.0, account.getBalance());
+        assertEquals(UserStatus.ACTIVE, account.getStatus());
+    }
+
+    @Test
+    void doesNotExposeMutablePositionOrMap() {
+        Method[] methods = UserAccount.class.getMethods();
+
+        assertFalse(Arrays.stream(methods)
+                .map(Method::getReturnType)
+                .anyMatch(returnType -> Map.class.isAssignableFrom(returnType)
+                        || MarketPosition.class.isAssignableFrom(returnType)));
     }
 
     private static UserAccount blockedAccount() {

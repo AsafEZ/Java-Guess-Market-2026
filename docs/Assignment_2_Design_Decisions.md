@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 4 are completed.
+- Status: In progress; Subtasks 1 through 5 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -126,14 +126,15 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 2. Completed: Add `User` with trimmed case-sensitive identity and ownership of one `UserAccount`.
 3. Completed: Add the user registry to `MarketSystem`, including unique-name validation and user lookup, without changing event behavior.
 4. Completed: Add `MarketPosition` with per-option holdings and commission-free `amountPaid`; separate commission tracking remains deferred until commission-aware trade integration.
-5. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
-6. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
-7. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
-8. Add user identity to `Trade` and its mapping while preserving event-level trade history.
-9. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
-10. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls.
-11. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
-12. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
+5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
+6. Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
+7. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
+8. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
+9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
+10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
+11. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls.
+12. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
+13. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
 
 - Documentation result: The selected ownership model, Assignment 1 current state, Assignment 2 target state, constraints, and ordered implementation plan are recorded. No production code, XSD, or JAXB files were changed.
 - Test result: Not run because this subtask changes documentation only.
@@ -207,4 +208,25 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the isolated position model and focused tests for independent option holdings, totals, validation, overflow atomicity, zero-value queries, and immutable snapshots. No account ownership, user/event linkage, trading, DTO, XML/JAXB, ConsoleUI, or JavaFX integration was introduced.
 - Test result: Engine compilation passed; Maven ran 45 JUnit 5 tests with 0 failures and 0 errors, including 14 `MarketPositionTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 5: User-Owned Market Positions
+
+- Status: Completed.
+- Goal: Let each `UserAccount` own one `MarketPosition` per event and expose position bookkeeping through `User` delegation without connecting positions to events, trading, or loading.
+- Ownership decision: The ownership chain is `User -> UserAccount -> Map<eventId, MarketPosition>`. `UserAccount` is the single owner of personal positions; neither `User` nor `MarketEvent` duplicates the map or any holding data.
+- Data structure decision: Positions are stored in a private `LinkedHashMap<Integer, MarketPosition>` for direct event lookup and deterministic insertion order. The map and mutable position objects are never returned.
+- Account API decision: `UserAccount` adds `hasPosition(int)`, `recordExecutedPurchase(int, int, long, double)`, `getSharesForOption(int, int)`, `getAmountPaidForOption(int, int)`, `getTotalShares(int)`, `getTotalAmountPaid(int)`, and `getPositionEventIds()`.
+- User API decision: `User` delegates the same position operations to its private account. The name `recordExecutedPurchase` states that this is bookkeeping for an already completed purchase and does not execute a trade.
+- Encapsulation decision: Position queries return scalar values, and event ids are returned as an immutable insertion-ordered snapshot. No API returns the positions map, a mutable `MarketPosition`, or the private `UserAccount`.
+- Atomicity decision: For the first purchase in an event, a position is created locally, updated, and added to the account map only after validation succeeds. Existing-position updates rely on `MarketPosition.recordPurchase`, which computes all updated values before mutation. A failed registration therefore leaves no empty position or partial holding change.
+- Money and status boundary: `paidAmount` remains commission-free share cost. Position bookkeeping does not debit or credit money, transfer commission, execute trading logic, or change account status; those operations remain deferred to transaction orchestration.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/UserAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/User.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserAccountTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added account-owned positions, immutable event-id snapshots, scalar position queries, and user delegation. `MarketPosition` itself was not changed, and no event, market system, trading, Engine API, DTO, XML/JAXB, ConsoleUI, or JavaFX integration was added.
+- Test result: Engine compilation passed; Maven ran 57 JUnit 5 tests with 0 failures and 0 errors, including 26 `UserAccountTest` tests and 8 `UserTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
