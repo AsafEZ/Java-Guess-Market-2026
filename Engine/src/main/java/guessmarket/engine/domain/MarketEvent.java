@@ -21,7 +21,7 @@ public final class MarketEvent {
     private final CommissionPolicy commissionPolicy;
     private final EventAccount account;
     private final List<Trade> trades = new ArrayList<>();
-    private EventStatus status = EventStatus.ACTIVE;
+    private EventStatus status;
     private Integer winningOptionNumber;
     private long nextTradeNumber = 1;
     private final TradingMechanism tradingMechanism;
@@ -33,10 +33,49 @@ public final class MarketEvent {
             String description,
             List<MarketOption> options,
             CommissionPolicy commissionPolicy,
-             TradingMechanism tradingMechanism,
+            TradingMechanism tradingMechanism,
             double initialSubsidy) {
+        this(
+                id,
+                name,
+                description,
+                options,
+                commissionPolicy,
+                tradingMechanism,
+                initialSubsidy,
+                EventStatus.ACTIVE);
+    }
+
+    public static MarketEvent createNotStartedEvent(
+            int id,
+            String name,
+            String description,
+            List<MarketOption> options,
+            CommissionPolicy commissionPolicy,
+            TradingMechanism tradingMechanism) {
+        return new MarketEvent(
+                id,
+                name,
+                description,
+                options,
+                commissionPolicy,
+                tradingMechanism,
+                0.0,
+                EventStatus.NOT_STARTED);
+    }
+
+    private MarketEvent(
+            int id,
+            String name,
+            String description,
+            List<MarketOption> options,
+            CommissionPolicy commissionPolicy,
+            TradingMechanism tradingMechanism,
+            double initialAccountBalance,
+            EventStatus initialStatus) {
         this.tradingMechanism =
                 Objects.requireNonNull(tradingMechanism, "tradingMechanism");
+        Objects.requireNonNull(options, "options");
         if (options.size() != 2) {
             throw new IllegalArgumentException("Exercise 1 requires exactly two options.");
         }
@@ -45,7 +84,8 @@ public final class MarketEvent {
         this.description = Objects.requireNonNull(description, "description");
         this.options = List.copyOf(options);
         this.commissionPolicy = Objects.requireNonNull(commissionPolicy, "commissionPolicy");
-        this.account = new EventAccount(initialSubsidy);
+        this.account = new EventAccount(initialAccountBalance);
+        this.status = Objects.requireNonNull(initialStatus, "initialStatus");
     }
 
     public PurchaseOutcome purchase(
@@ -136,6 +176,11 @@ public final class MarketEvent {
     }
 
     private void requireActive() {
+        if (status == EventStatus.NOT_STARTED) {
+            throw new EngineException(
+                    ErrorCode.EVENT_NOT_STARTED,
+                    "Event " + id + " has not started.");
+        }
         if (status == EventStatus.CLOSED) {
             throw new EngineException(
                     ErrorCode.EVENT_ALREADY_CLOSED,
@@ -179,6 +224,10 @@ public final class MarketEvent {
 
     public int getB() {
         return requireLmsrOperations().getB();
+    }
+
+    public double getRequiredInitialSubsidy() {
+        return requireLmsrOperations().calculateInitialSubsidy();
     }
 
     public EventAccount getAccount() {

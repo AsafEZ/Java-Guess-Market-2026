@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 6 are completed.
+- Status: In progress; Subtasks 1 through 6 and Subtask 7A are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -128,7 +128,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 4. Completed: Add `MarketPosition` with per-option holdings and commission-free `amountPaid`; separate commission tracking remains deferred until commission-aware trade integration.
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
-7. Add event open/close operations with acting-user identity, Market Maker authorization, lifecycle validation, and LMSR subsidy transfer on open.
+7. In progress: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
 8. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
 9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
 10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
@@ -252,4 +252,23 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added a one-time, name-based Market Maker relationship while preserving existing constructors, factory behavior, and Assignment 1 event operations. The event contains no `User` reference and assignment leaves user balances, status, and positions unchanged.
 - Test result: Engine compilation passed; Maven ran 70 JUnit 5 tests with 0 failures and 0 errors, including 13 `MarketMakerAssignmentTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 7A: Not-Started Event Lifecycle
+
+- Status: Completed.
+- Goal: Introduce the Assignment 2 not-started lifecycle and an explicit event-creation path without implementing Market Maker funding or authorization.
+- Rationale: Assignment 2 events must exist before trading begins, while Assignment 1 events must retain their existing active-and-funded construction behavior.
+- Lifecycle decision: `EventStatus` adds `NOT_STARTED` as the single source of truth for an event that has not opened. No separate `opened`, `funded`, or `legacy` flag is stored. Purchases and closure require `ACTIVE`; attempting either operation on a not-started event raises `EVENT_NOT_STARTED` before changing state.
+- Creation decision: The existing public `MarketEvent` constructor remains the legacy Assignment 1 path and still creates an `ACTIVE` event whose `EventAccount` contains the supplied initial subsidy. `MarketEvent.createNotStartedEvent(...)` is the explicit Assignment 2 path and creates a `NOT_STARTED` event with a zero-balance `EventAccount`.
+- Subsidy decision: The required LMSR subsidy is not duplicated in a field. `getRequiredInitialSubsidy()` delegates to `LmsrTradingOperations.calculateInitialSubsidy()`, which remains its single source of truth. Funding that amount is deferred to Subtask 7B.
+- Compatibility decision: `MarketSystemFactory`, the public `GuessMarketEngine` API, XML/JAXB, trading calculations, and the legacy constructor call sites are unchanged. Assignment 1 loading therefore continues to produce active, funded events.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/enums/EventStatus.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketEventLifecycleTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the not-started state, explicit Assignment 2 factory, mechanism-derived required-subsidy accessor, and lifecycle guards. No funding, Market Maker authorization, Engine API, XML/JAXB, trade, position, or UI integration was added.
+- Test result: Engine compilation passed; Maven ran 76 JUnit 5 tests with 0 failures and 0 errors, including 6 `MarketEventLifecycleTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
