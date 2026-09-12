@@ -91,9 +91,33 @@ public final class MarketEvent {
     public PurchaseOutcome purchase(
             int optionNumber,
             long quantity) {
+        PurchaseQuote quote = quotePurchase(optionNumber, quantity);
+        MarketOption selected = findOption(quote.optionNumber());
 
+        selected.addShares(quote.quantity());
+        account.recordPurchase(quote.shareCost(), quote.commission());
+
+        trades.add(new Trade(
+                nextTradeNumber++,
+                quote.optionNumber(),
+                selected.getName(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge()
+        ));
+
+        return new PurchaseOutcome(
+                quote.optionNumber(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge()
+        );
+    }
+
+    PurchaseQuote quotePurchase(int optionNumber, long quantity) {
         requireActive();
-
         if (quantity <= 0) {
             throw new EngineException(
                     ErrorCode.INVALID_SHARE_QUANTITY,
@@ -101,44 +125,24 @@ public final class MarketEvent {
             );
         }
 
-        MarketOption selected = findOption(optionNumber);
-
-        LmsrTradingOperations lmsrOperations =
-                requireLmsrOperations();
-
-        double shareCost = lmsrOperations.executePurchase(
+        findOption(optionNumber);
+        double shareCost = requireLmsrOperations().calculatePurchaseCost(
                 options,
-                selected,
-                quantity
-        );
-
-        double commission =
-                commissionPolicy.type() == CommissionType.ON_PURCHASE
-                        ? commissionPolicy.calculate(shareCost)
-                        : 0.0;
-
-        double totalPaid = shareCost + commission;
-
-        account.recordPurchase(shareCost, commission);
-
-        trades.add(new Trade(
-                nextTradeNumber++,
                 optionNumber,
-                selected.getName(),
-                quantity,
-                shareCost,
-                commission,
-                totalPaid
-        ));
-
-        return new PurchaseOutcome(
+                quantity);
+        double commission = commissionPolicy.type() == CommissionType.ON_PURCHASE
+                ? commissionPolicy.calculate(shareCost)
+                : 0.0;
+        PurchaseQuote quote = PurchaseQuote.create(
+                id,
                 optionNumber,
                 quantity,
                 shareCost,
-                commission,
-                totalPaid
-        );
+                commission);
+        account.validatePurchase(quote.shareCost(), quote.commission());
+        return quote;
     }
+
     public CloseOutcome close(int optionNumber) {
         requireActive();
         MarketOption winner = findOption(optionNumber);

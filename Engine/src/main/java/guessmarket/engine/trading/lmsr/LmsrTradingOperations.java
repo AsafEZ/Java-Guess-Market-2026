@@ -6,9 +6,9 @@ import guessmarket.engine.trading.TradingMechanism;
 import java.util.List;
 
 public interface LmsrTradingOperations extends TradingMechanism {
-    double executePurchase(
+    double calculatePurchaseCost(
             List<MarketOption> options,
-            MarketOption selectedOption,
+            int optionNumber,
             long quantity);
 
     double calculateOptionValue(

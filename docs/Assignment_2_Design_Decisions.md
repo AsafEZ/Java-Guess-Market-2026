@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 6, Subtask 7A, and Subtask 7B are completed.
+- Status: In progress; Subtasks 1 through 7B and Subtask 8A are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -129,7 +129,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 5. Completed: Connect `MarketPosition` ownership to `UserAccount` and expose position bookkeeping and queries through `User` delegation without trading integration.
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
-8. Make LMSR purchase orchestration user-aware, updating the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
+8. In progress: Subtask 8A separates pure LMSR purchase quoting from execution; Subtask 8B will make purchase orchestration user-aware and update the user's account and `MarketPosition` while preserving `MarketOption.purchasedShares` as aggregate state.
 9. Add user identity to `Trade` and its mapping while preserving event-level trade history.
 10. Implement multi-user settlement on event closure, credit winners, transfer commissions and remaining LMSR funds to the Market Maker, and block further event activity.
 11. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls.
@@ -294,4 +294,30 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added authorized, prevalidated LMSR event funding and opening with focused compensation, while leaving user-aware closing and all later trading, settlement, loading, DTO, and UI work deferred.
 - Test result: Engine compilation passed; Maven ran 86 JUnit 5 tests with 0 failures and 0 errors, including 10 `MarketEventOpeningTest` tests; `EngineSmokeTest` passed with assertions enabled.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 8A: Pure Purchase Quoting
+
+- Status: Completed.
+- Goal: Calculate a complete LMSR purchase quote before any state change so the later user-aware purchase transaction can validate all monetary values before coordinating its mutations.
+- Audit result: The existing flow entered through `GuessMarketEngine.purchaseShares`, delegated to `MarketEvent.purchase`, and called `LmsrTradingMechanism.executePurchase`. That mechanism calculated the LMSR cost and immediately changed aggregate option shares. `MarketEvent` then calculated commission and total payment, updated `EventAccount`, added a `Trade`, and returned `PurchaseOutcome`, which the Engine mapped to the existing `PurchaseResult`.
+- Failure audit: Lifecycle, quantity, and option validation could fail before pricing; LMSR arithmetic and share accumulation could fail around the first mutation; non-finite commission or total values and account accumulation were not prevalidated. The synchronized Engine entry point serializes Assignment 1 purchases, and the new quote is consumed immediately by `MarketEvent.purchase`, so no quote reservation, locking, or versioning mechanism is introduced.
+- Quote boundary: `MarketEvent.quotePurchase(int optionNumber, long quantity)` is package-private and returns a package-private immutable `PurchaseQuote`. It validates event state and request values, obtains a pure LMSR cost, calculates commission and total charge, and verifies the event account can accept the values without changing state.
+- Responsibility decision: `LmsrTradingMechanism.calculatePurchaseCost(...)` reads aggregate option quantities and calculates only the LMSR share cost. It no longer mutates `MarketOption`. `MarketEvent` combines that cost with `CommissionPolicy` and request identity, then owns the later aggregate-share, event-account, and trade-history mutations. `CommissionPolicy` and `LmsrCalculator` do not cross these boundaries.
+- Quote structure: `PurchaseQuote` contains `eventId`, `optionNumber`, `quantity`, `shareCost`, `commission`, and `totalCharge`. Share cost is the commission-free amount intended for the future `MarketPosition`; commission is separate; total charge is their finite sum. The quote rejects non-finite or negative monetary values and arithmetic overflow.
+- Execution decision: The legacy `MarketEvent.purchase` first creates a quote, then adds aggregate option shares once, records the purchase in `EventAccount` once, appends one `Trade`, and returns the existing `PurchaseOutcome` values from that quote. Pricing and commission formulas are not duplicated.
+- Purity decision: Quoting does not change option shares, event-account balances or commissions, event status, trade history, users, positions, or Market Maker accounts. Consecutive quotes over the same state are equal. Not-started and closed events reject quotes before pricing or mutation.
+- Exposure decision: The quote and quoting method remain inside the domain package. They are not added to `GuessMarketEngine`, DTOs, ConsoleUI, JavaFX, or XML because Subtask 8B will consume a quote immediately inside one transaction rather than expose a potentially stale value.
+- Compatibility decision: `GuessMarketEngine.purchaseShares`, `PurchaseResult`, `PurchaseOutcome`, `Trade`, mapping, and observable Assignment 1 prices, commissions, and state updates remain unchanged.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/trading/lmsr/LmsrTradingOperations.java`
+  - `Engine/src/main/java/guessmarket/engine/trading/lmsr/LmsrTradingMechanism.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/PurchaseQuote.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/EventAccount.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/PurchaseQuoteTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketEventOpeningTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added pure purchase pricing and immutable quote construction, moved aggregate share mutation out of LMSR, refactored legacy execution to consume the quote, and added pre-mutation numeric validation without integrating users or changing the public Engine API.
+- Test result: Engine compilation passed; Maven ran 100 JUnit 5 tests with 0 failures and 0 errors, including 14 `PurchaseQuoteTest` tests; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.

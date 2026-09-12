@@ -225,9 +225,9 @@ class MarketEventOpeningTest {
         private int subsidyCalculationCount;
 
         @Override
-        public double executePurchase(
+        public double calculatePurchaseCost(
                 List<MarketOption> options,
-                MarketOption selectedOption,
+                int optionNumber,
                 long quantity) {
             return 1.0;
         }

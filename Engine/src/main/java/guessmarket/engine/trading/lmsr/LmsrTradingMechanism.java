@@ -27,12 +27,12 @@ public final class LmsrTradingMechanism implements LmsrTradingOperations {
     }
 
     @Override
-    public double executePurchase(List<MarketOption> options
-            ,MarketOption selectedOption,
+    public double calculatePurchaseCost(
+            List<MarketOption> options,
+            int optionNumber,
             long quantity) {
 
-        int optionIndex =
-                selectedOption.getOptionNumber() - 1;
+        int optionIndex = optionNumber - 1;
 
         long firstShares =
                 options.get(0).getPurchasedShares();
@@ -49,8 +49,9 @@ public final class LmsrTradingMechanism implements LmsrTradingOperations {
                     quantity
             );
 
-            selectedOption.addShares(quantity);
-
+            if (!Double.isFinite(shareCost) || shareCost < 0.0) {
+                throw new ArithmeticException("Purchase cost is not a finite non-negative value.");
+            }
             return shareCost;
         } catch (ArithmeticException exception) {
             throw new EngineException(
