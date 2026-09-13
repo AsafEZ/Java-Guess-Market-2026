@@ -135,7 +135,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
 8. Completed: Subtask 8A separates pure LMSR purchase quoting from execution; Subtasks 8B.1 and 8B.2 add transaction primitives, buyer-aware trades, and atomic user-aware purchases; Subtask 8C records purchase commissions in user positions.
 9. Completed: Implement multi-user settlement in two focused parts: 9A creates an immutable, non-mutating settlement plan; 9B prevalidates and atomically distributes funds before closing the event.
-10. In progress: Subtask 10B.1 adds Task 2 DTO projections and mappers; Subtask 10B.2 exposes them through the public Engine API; Subtask 10B.3 will verify and repair Assignment 1 ConsoleUI compatibility.
+10. Completed: Subtask 10B.1 adds Task 2 DTO projections and mappers; Subtask 10B.2 exposes them through the public Engine API; Subtask 10B.3 verifies both API generations together and restores Assignment 1 ConsoleUI compatibility.
 11. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
 12. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
 
@@ -513,4 +513,26 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the complete public Task 2 Engine facade over the existing domain behavior while preserving explicit legacy paths and preventing domain leakage.
 - Test result: Engine compilation passed; Maven ran 200 JUnit 5 tests with 0 failures and 0 errors, including 18 `Task2EngineApiTest` tests and all 182 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the API dependency audit passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 10B.3: Engine API and ConsoleUI Compatibility
+
+- Status: Completed. Stage 10 is complete.
+- Goal: Verify that the seven Assignment 1 Engine methods and seven Assignment 2 Engine methods coexist without ambiguity or regression, and restore ConsoleUI compilation after `EventStatus.NOT_STARTED` was introduced.
+- Rationale: ConsoleUI remains an Assignment 1 client and must continue to compile against the expanded Engine API. Exhaustive status formatting should expose newly added lifecycle states during compilation instead of hiding them behind a default branch.
+- Audit result: The only `EventStatus` switch in ConsoleUI was `ConsoleView.formatStatus`. A clean ConsoleUI compilation reproduced one failure because `NOT_STARTED` was missing; no additional compilation failure was found. ConsoleUI imports only `GuessMarketEngine`, Assignment 1 DTOs, enums, and exceptions, and has no direct domain access. Engine has no ConsoleUI or JavaFX dependency.
+- Status-formatting decision: `ConsoleView.formatStatus` is now a pure package-private static function so it can be tested directly. Its exhaustive switch explicitly maps `NOT_STARTED` to `Not Started`, `ACTIVE` to `Active`, and `CLOSED` to `Closed`; no default branch was introduced.
+- API compatibility decision: Reflection-based tests pin the exact parameter and return types of all fourteen public methods. They verify that the legacy and user-aware purchase and close overloads resolve independently, that every public return type is an approved DTO or collection of DTOs, and that no domain type appears in the interface.
+- Assignment 1 regression coverage: A JUnit compatibility flow loads Assignment 1 XML and verifies legacy event summaries, active events, event details, purchase, and close through their unchanged DTOs and signatures. `EngineSmokeTest` independently exercises the same production factory and XML path with assertions enabled.
+- Console test infrastructure: ConsoleUI now has a test-scoped JUnit 5 dependency matching Engine. Its three discovered tests cover all `EventStatus` display values. No Task 2 command, menu item, DTO use, or business behavior was added to ConsoleUI, and no ConsoleUI smoke test exists in the repository.
+- Combined validation: Engine compilation and local installation passed; Engine ran 204 JUnit 5 tests with 0 failures and 0 errors, including 4 new compatibility tests. ConsoleUI clean compilation passed against the installed Engine and ran 3 JUnit 5 tests with 0 failures and 0 errors. `EngineSmokeTest` passed with assertions enabled. `git diff --check` and both dependency audits passed.
+- Compatibility boundary: XML/XSD/JAXB, domain logic, transaction atomicity, Task 1 and Task 2 DTOs, Order Book, JavaFX, FXML, and all Engine implementation paths are unchanged. There is no fallback between legacy and Task 2 operations.
+- Changed files:
+  - `ConsoleUI/pom.xml`
+  - `ConsoleUI/src/main/java/guessmarket/console/ConsoleView.java`
+  - `ConsoleUI/src/test/java/guessmarket/console/ConsoleViewStatusTest.java`
+  - `Engine/src/test/java/guessmarket/engine/api/EngineApiCompatibilityTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Stage 10 now provides two explicit, compatible Engine API generations and a compiling Assignment 1 ConsoleUI with exhaustive lifecycle-status formatting.
+- Test result: Engine ran 204 tests and ConsoleUI ran 3 tests, all passing; both modules compiled, the Engine smoke test passed with assertions, and the final scope and dependency audits were clean.
 - Commit ID: Recorded in the final run summary after commit creation.

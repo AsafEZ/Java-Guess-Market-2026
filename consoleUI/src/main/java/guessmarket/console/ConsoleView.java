@@ -232,8 +232,9 @@ public final class ConsoleView {
         return decimalFormat.format(value);
     }
 
-    private String formatStatus(EventStatus status) {
+    static String formatStatus(EventStatus status) {
         return switch (status) {
+            case NOT_STARTED -> "Not Started";
             case ACTIVE -> "Active";
             case CLOSED -> "Closed";
         };
