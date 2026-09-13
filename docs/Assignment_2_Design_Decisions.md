@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 8C are completed.
+- Status: In progress; Subtasks 1 through 9B and Subtask 10B.1 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -134,8 +134,8 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 6. Completed: Link each `MarketEvent` to its Market Maker by user name and resolve that relationship through `MarketSystem`; do not store a `User` reference in the event.
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
 8. Completed: Subtask 8A separates pure LMSR purchase quoting from execution; Subtasks 8B.1 and 8B.2 add transaction primitives, buyer-aware trades, and atomic user-aware purchases; Subtask 8C records purchase commissions in user positions.
-9. Implement multi-user settlement in two focused parts: 9A creates an immutable, non-mutating settlement plan; 9B prevalidates and atomically distributes funds before closing the event.
-10. Add user/account/position DTOs and public Engine API operations, including user-aware trading and Market Maker open/close calls and buyer identity mapping.
+9. Completed: Implement multi-user settlement in two focused parts: 9A creates an immutable, non-mutating settlement plan; 9B prevalidates and atomically distributes funds before closing the event.
+10. In progress: Subtask 10B.1 adds Task 2 DTO projections and mappers; later focused subtasks will extend the public Engine API and verify Assignment 1 ConsoleUI compatibility.
 11. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
 12. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
 
@@ -454,4 +454,39 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added prevalidated atomic multi-user settlement, immutable public domain results, exact full-account distribution, closing-commission bookkeeping, passive blocked-winner payout, complete event-account draining, and a final one-time close transition without changing the legacy close flow.
 - Test result: Engine compilation passed; Maven ran 174 JUnit 5 tests with 0 failures and 0 errors, including 21 `SettlementExecutionTest` tests and all 153 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the final atomicity audit passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 10B.1: Task 2 DTO Projections and Mappers
+
+- Status: Completed.
+- Goal: Add immutable public projections for Task 2 events, users, positions, purchases, and settlements without extending `GuessMarketEngine` or exposing domain objects.
+- Rationale: The future Engine API and JavaFX UI need stable snapshots that preserve the Engine boundary. Task 1 DTOs remain unchanged so the legacy API and ConsoleUI can continue to use their existing LMSR-oriented projection.
+- Event projection decision: `MarketEventSummary` and `MarketEventDetails` contain mechanism-independent event fields and the explicit `TradingMethod`. `MarketEventDetails` delegates mechanism-specific display data to the sealed `TradingMechanismDetails` contract. `LmsrEventDetails` is the only current implementation and contains `b`, immutable LMSR option snapshots, and immutable newest-first trade snapshots. A later `OrderBookEventDetails` can be added without adding Order Book fields to the common event records.
+- Mapping boundary: `MarketEventDtoMapper` selects the mechanism projection through `TradingMethod` and public semantic `MarketEvent` queries. It does not cast to or import `LmsrTradingMechanism`. Mappers that need cross-aggregate lookup receive `MarketSystem` explicitly; none retain mutable global lookup state.
+- User projection decision: `UserSummary` exposes only name, balance, and status. `UserDetails` adds immutable Market Maker event ids and per-event `PositionDetails`. A position includes all event options, the user's shares, commission-free `amountPaid`, separate `commissionPaid`, totals, winner information, and only that user's buyer-aware trades. No `UserAccount`, `MarketPosition`, internal map, realized profit/loss, or unexecuted Order Book participation is exposed or invented.
+- Event participation decision: `MarketEventDetails.participantPositions` is derived from existing user positions in registry order. It represents participation currently known to the domain. Future Order Book participation caused by an unexecuted first order remains deferred until that domain state exists.
+- Transaction-result decision: `UserPurchaseResult` adds canonical buyer identity and post-transaction event and buyer snapshots to the scalar `PurchaseOutcome` values. `SettlementResult`, `UserSettlementResult`, and `AccountCreditResult` copy every public settlement value while preserving the domain's already consolidated Market Maker credit, including when the Market Maker is also a winner.
+- Immutability decision: DTOs are records where appropriate. Every collection is copied with `List.copyOf` or `Set.copyOf`, every nested value is another immutable DTO or enum, and mapper output contains no domain or JavaFX type. A mapped snapshot remains unchanged after later domain purchases or settlement mutations.
+- Compatibility boundary: `GuessMarketEngine`, `GuessMarketEngineImpl`, all Task 1 DTOs, ConsoleUI, XML/XSD/JAXB, trading contracts, and domain classes are unchanged. `INVALID_USER_NAME` remains deferred to the public API boundary in Subtask 10B.2.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/dto/TradingMechanismDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/LmsrEventDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/MarketEventSummary.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/MarketEventDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/UserSummary.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/UserDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/PositionDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/OptionPositionDetails.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/UserPurchaseResult.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/SettlementResult.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/UserSettlementResult.java`
+  - `Engine/src/main/java/guessmarket/engine/dto/AccountCreditResult.java`
+  - `Engine/src/main/java/guessmarket/engine/impl/MarketEventDtoMapper.java`
+  - `Engine/src/main/java/guessmarket/engine/impl/UserDtoMapper.java`
+  - `Engine/src/main/java/guessmarket/engine/impl/PurchaseDtoMapper.java`
+  - `Engine/src/main/java/guessmarket/engine/impl/SettlementDtoMapper.java`
+  - `Engine/src/test/java/guessmarket/engine/impl/Task2DtoMapperTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the complete Task 2 projection layer and mapper coverage without changing a public Engine method or any existing Task 1 DTO.
+- Test result: Engine compilation passed; Maven ran 182 JUnit 5 tests with 0 failures and 0 errors, including 8 `Task2DtoMapperTest` tests and all 174 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the dependency audit passed.
 - Commit ID: Recorded in the final run summary after commit creation.
