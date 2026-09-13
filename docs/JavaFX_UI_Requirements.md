@@ -416,18 +416,25 @@ The current Stage 14A static `FXMLLoader.load` call will eventually need to beco
 - `UserDetails.marketMakerEventIds` contains ids rather than event summaries; the UI can join these ids against `getAllMarketEvents()` without a new API.
 - No public cost quote exists before an LMSR purchase. The assignment requires the purchase behavior and resulting information, not a pre-purchase quote, so this is not currently a blocking UI gap.
 
-## 14. Open Decisions Requiring Approval
+## 14. Approved and Deferred Decisions
 
-1. Approve Alternative 2: `main-view.fxml` with `events-view.fxml` and `users-view.fxml`, each with a focused controller.
-2. Approve actor-scoped mutations only in the Users tab. The Events tab remains an overview and does not silently act as the event's Market Maker.
-3. Approve three segmented `ToggleButton` groups with an explicit `All` value for event filters, following the assignment hint. A `ComboBox` per filter is the simpler alternative.
-4. Approve a `TableView` rather than tiles for the event master list, because the required fields support scanning and comparison.
-5. Resolve the participation wording by showing all participation records with an `Active`/`All` scope, rather than hiding closed positions that the assignment also requires users to inspect.
-6. Choose the artificial load delay within the required range. One second is recommended.
-7. Decide during Order Book design whether pending orders are cancellable. Cancellation is not required by the current assignment and no UI or API should be added now.
-8. Decide during Order Book DTO design whether one unified `submitOrder(..., OrderSide, ...)` API is accepted.
-9. Decide whether the two Order Books should stack vertically at a narrow responsive breakpoint or always remain side by side with scrolling.
-10. Define participant `holding value` for LMSR and Order Book. The UI must not invent a valuation formula from available display fields.
+1. Approved: use Alternative 2, with `main-view.fxml` including `events-view.fxml` and `users-view.fxml`, each backed by a focused controller.
+2. Approved for the first functional UI stage: actor-scoped mutations are initiated from the Users tab, where the acting identity is explicit. The Events tab still contains the required event-details-and-trade area as a structural shell; its final mutation role remains open.
+3. Approved: use three segmented `ToggleButton` groups with an explicit `All` value for event filters.
+4. Approved: use `TableView` for the event and user master lists.
+5. Approved: show participation records through an `Active`/`All` scope so closed positions remain inspectable.
+6. Approved for future XML loading: use a one-second artificial delay. Stage 14B.1 does not implement the loading flow.
+7. Deferred: pending-order cancellation is not required by the current assignment and will not be added unless a later Order Book requirement establishes it.
+8. Deferred: `submitOrder` is a design direction only; its final signature depends on the Order Book domain model.
+9. Approved: mechanism option/book regions may stack vertically when the window is narrow.
+10. Deferred: participant `holding value` must be defined per mechanism when Order Book support is designed. The UI must not invent a valuation formula.
+
+### Stage 14B.1 Shell Status
+
+- The persistent header, Events tab, and Users tab have been implemented as a SceneBuilder-compatible visual shell.
+- The XML path is intentionally a read-only display. It will be populated by the future `FileChooser` flow; direct path entry and XML loading are outside Stage 14B.1.
+- Empty states and disabled structural action areas are intentional because this stage has no Engine connection or mock business data.
+- The two option regions use a wrapping `TilePane`, allowing them to move from two columns to a vertical arrangement as available width decreases.
 
 ## 15. Stage 14B Acceptance Criteria
 

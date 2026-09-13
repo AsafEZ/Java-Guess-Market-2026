@@ -1,25 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="600.0" prefWidth="900.0" styleClass="app-root"
+<BorderPane fx:id="mainRoot" prefHeight="600.0" prefWidth="900.0" styleClass="app-root"
             xmlns="http://javafx.com/javafx/25.0.4"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="guessmarket.javafx.controller.MainController">
     <top>
-        <VBox styleClass="header">
+        <VBox fx:id="applicationHeader" spacing="8.0" styleClass="application-header">
             <padding>
-                <Insets bottom="18.0" left="24.0" right="24.0" top="18.0"/>
+                <Insets bottom="12.0" left="20.0" right="20.0" top="12.0"/>
             </padding>
-            <Label styleClass="app-title" text="Guess Market"/>
+            <HBox fx:id="titleAndLoadBar" alignment="CENTER_LEFT" spacing="12.0">
+                <Label fx:id="appTitleLabel" styleClass="app-title" text="Guess Market"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="loadFileButton" mnemonicParsing="false" styleClass="primary-button"
+                        text="Load XML"/>
+                <TextField fx:id="loadedFilePathField" maxWidth="1.7976931348623157E308"
+                           promptText="No file loaded" styleClass="path-field" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <ProgressBar fx:id="loadProgressBar" maxWidth="1.7976931348623157E308"
+                         progress="-1.0"/>
+            <Label fx:id="globalFeedbackLabel" maxWidth="1.7976931348623157E308"
+                   styleClass="feedback-label" text="" wrapText="true"/>
         </VBox>
     </top>
     <center>
-        <VBox alignment="CENTER" spacing="12.0">
-            <Label fx:id="statusLabel" styleClass="ready-label" text="JavaFX UI Ready"/>
-        </VBox>
+        <TabPane fx:id="workspaceTabs" styleClass="workspace-tabs"
+                 tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab fx:id="eventsTab" text="Events">
+                    <content>
+                        <fx:include fx:id="eventsView" source="events-view.fxml"/>
+                    </content>
+                </Tab>
+                <Tab fx:id="usersTab" text="Users">
+                    <content>
+                        <fx:include fx:id="usersView" source="users-view.fxml"/>
+                    </content>
+                </Tab>
+            </tabs>
+        </TabPane>
     </center>
 </BorderPane>

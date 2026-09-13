@@ -653,3 +653,28 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Validation result: Documentation scope audit confirmed that only the two Markdown files changed. `git diff --check` passed. Code tests were not rerun because this subtask changes documentation only.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 14B.1: Responsive JavaFX View Shell
+
+- Status: Completed. Engine integration, XML file selection/loading, live data, trading actions, Order Book behavior, and final packaging remain deferred.
+- Goal: Replace the Stage 14A placeholder with the real responsive Events and Users workspace structure from the instructor presentation and `JavaFX_UI_Requirements.md`, while keeping the UI disconnected from Engine state and mutations.
+- FXML decision: `main-view.fxml` remains a `BorderPane` and owns the persistent load header and `TabPane`. It includes `events-view.fxml` and `users-view.fxml` through `fx:include`, keeping all three files independently editable in SceneBuilder.
+- Controller decision: `MainController`, `EventsController`, and `UsersController` contain only FXML bindings and shell initialization. The main controller receives both included controllers through the standard `fx:id` plus `Controller` injection convention. No controller creates or calls `GuessMarketEngine`, loads XML, or contains mock business data.
+- Layout decision: Both feature views use relative `SplitPane` master-detail layouts, `TableView` master lists, scrolling details, explicit empty states, and flexible sizing. The event option placeholders use a wrapping `TilePane` so they can move from two columns to a vertical arrangement when width is constrained.
+- Table decision: All seven `TableView` controls declare `CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN` in FXML. Keeping the resize policy in FXML preserves SceneBuilder visibility and avoids presentation behavior in controllers.
+- Interaction boundary: The Events workspace contains the required `Event details and trade` structure but performs no mutation. User and Market Maker action areas are structural, disabled placeholders in the Users workspace. `submitOrder`, cancellation, and holding-value semantics remain deferred to Order Book design.
+- Loading boundary: The header includes `Load XML`, current-path, progress, and feedback controls, but no load flow is implemented. The path field is intentionally read-only and will be populated by the future `FileChooser`; direct typing is not part of Stage 14B.1.
+- Changed files:
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/MainController.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/EventsController.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/UsersController.java`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/main-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/events-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/users-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/css/application.css`
+  - `JavaFXUI/src/test/java/guessmarket/javafx/JavaFxResourcesTest.java`
+  - `docs/JavaFX_UI_Requirements.md`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: JavaFXUI `clean test` passed with 3 JUnit 5 tests covering independent child-view loading, the main view with both includes, controller creation, resource presence, and central `@FXML` injection. Engine ran 225 JUnit 5 tests with 0 failures and 0 errors, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compiled and ran all 3 JUnit 5 tests successfully. `git diff --check` passed. The application launched through `mvn javafx:run` without FXML errors, and the user visually confirmed the Events and Users tabs and the responsive layout. The source audit found no Engine or ConsoleUI changes, no Engine/domain access from controllers, and no mock business data.
+- Implementation result: Stage 14B.1 provides the complete visual shell and empty states needed for later Engine wiring while preserving module boundaries and Assignment 1 compatibility.
+- Commit ID: Recorded in the final run summary after commit creation.
