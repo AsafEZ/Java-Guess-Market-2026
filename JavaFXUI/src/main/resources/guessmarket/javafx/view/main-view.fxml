@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="900.0" styleClass="app-root"
+            xmlns="http://javafx.com/javafx/25.0.4"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="guessmarket.javafx.controller.MainController">
+    <top>
+        <VBox styleClass="header">
+            <padding>
+                <Insets bottom="18.0" left="24.0" right="24.0" top="18.0"/>
+            </padding>
+            <Label styleClass="app-title" text="Guess Market"/>
+        </VBox>
+    </top>
+    <center>
+        <VBox alignment="CENTER" spacing="12.0">
+            <Label fx:id="statusLabel" styleClass="ready-label" text="JavaFX UI Ready"/>
+        </VBox>
+    </center>
+</BorderPane>

@@ -609,3 +609,25 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Validation result: The focused schema suite ran 14 tests with 0 failures and 0 errors: 5 schema-valid and 9 schema-invalid. The complete Engine suite ran 225 tests with 0 failures and 0 errors, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compilation and all 3 ConsoleUI JUnit tests passed.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 14A: JavaFX UI Module Foundation
+
+- Status: Completed. Full Events and Users screens, Engine integration, XML file selection, Order Book UI, and final packaging remain deferred to later Stage 14 work.
+- Goal: Establish a separate Maven `JavaFXUI` module that depends on Engine, loads an editable FXML view and stylesheet from the classpath, and launches a minimal resizable JavaFX window without introducing UI dependencies into Engine.
+- Module-boundary decision: `JavaFXUI` is a non-modular Maven project because the existing Engine and ConsoleUI projects do not use `module-info.java`. It depends on `org.example:Engine:1.0-SNAPSHOT`; Engine and ConsoleUI POMs and source code remain unchanged, and no root aggregator POM was introduced.
+- JavaFX version decision: JavaFX 25.0.4 was selected because the project compiles and runs on JDK 25.0.4 and the matching stable maintenance release minimizes runtime-version mismatch. Maven manages `javafx-controls`, `javafx-fxml`, and `javafx-maven-plugin` 0.0.8; no local JavaFX SDK, absolute dependency path, or system-scoped dependency is used. The run configuration enables native access for `javafx.graphics` to avoid the JDK 25 restricted-native-access warning.
+- Resource and controller decision: `GuessMarketApplication` loads `/guessmarket/javafx/view/main-view.fxml` and `/guessmarket/javafx/css/application.css` through the classpath and reports a clear failure if either resource is absent. The FXML uses a `BorderPane`, layout containers, `fx:controller`, and an injected `fx:id`. `MainController` contains only the minimal FXML binding and does not create or access Engine, MarketSystem, XML loading, trades, users, events, or mock business data.
+- Launch decision: `Launcher` is the Maven main class and starts `GuessMarketApplication`. The application creates a 900 by 600 resizable scene, applies the stylesheet, and displays a stage titled `Guess Market`.
+- PowerPoint UI reference received: The instructor-supplied `ex 2 scetch.pptx` contains two slides covering the future Events and Users workspaces. Both slides were rendered and inspected visually. The selected package, resource, `BorderPane`, FXML, CSS, and controller structure can be extended with additional views, tables, tabs, filters, detail panes, and actions without changing the Stage 14A boundary. Detailed component-to-FXML/controller mapping is deferred to Stage 14B.0. The presentation was not copied into the repository.
+- Changed files:
+  - `JavaFXUI/pom.xml`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/GuessMarketApplication.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/Launcher.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/MainController.java`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/main-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/css/application.css`
+  - `JavaFXUI/src/test/java/guessmarket/javafx/JavaFxResourcesTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: Engine local installation passed. JavaFXUI `clean test` and compilation passed with 1 JUnit 5 resource test, and `mvn javafx:run` completed successfully with no FXML or controller-loading error. The user visually confirmed the resizable `Guess Market` window, title, styling, and centered `JavaFX UI Ready` content. Engine ran 225 JUnit 5 tests with 0 failures and 0 errors, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compiled and ran all 3 JUnit 5 tests successfully. The scope, dependency, ignored-build-output, and whitespace audits passed.
+- Implementation result: Stage 14A provides a SceneBuilder-compatible JavaFX foundation while preserving the separation between UI and Engine and leaving all business UI behavior for subsequent stages.
+- Commit ID: Recorded in the final run summary after commit creation.
