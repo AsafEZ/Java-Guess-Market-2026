@@ -68,6 +68,19 @@ public final class EventAccount {
         balance += shareCost;
     }
 
+    void validateSettlementDrain(double expectedBalance) {
+        requireFiniteNonNegative(expectedBalance, "expectedBalance");
+        if (Double.compare(balance, expectedBalance) != 0) {
+            throw new EngineException(
+                    ErrorCode.SETTLEMENT_STATE_MISMATCH,
+                    "The event account balance changed after settlement planning.");
+        }
+    }
+
+    void applyValidatedSettlementDrain() {
+        balance = 0.0;
+    }
+
     public void settleClosedEvent(double grossPayout, double commission) {
         double netPayout = grossPayout - commission;
         balance -= netPayout;

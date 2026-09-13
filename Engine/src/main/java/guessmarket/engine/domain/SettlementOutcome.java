@@ -3,30 +3,28 @@ package guessmarket.engine.domain;
 import java.util.List;
 import java.util.Objects;
 
-record SettlementPlan(
+public record SettlementOutcome(
         int eventId,
         int winningOptionNumber,
         String marketMakerName,
-        double eventBalanceBefore,
-        double payoutPerWinningShare,
         List<UserSettlement> userSettlements,
         List<AccountCredit> accountCredits,
         double totalGrossPayout,
         double totalClosingCommission,
         double totalWinnerNetPayout,
         double marketMakerResidual,
-        double totalMarketMakerCredit) {
+        double totalMarketMakerCredit,
+        double eventBalanceBefore,
+        double eventBalanceAfter) {
 
-    SettlementPlan {
+    public SettlementOutcome {
         if (eventId < 1) {
             throw new IllegalArgumentException("Event id must be positive.");
         }
         if (winningOptionNumber < 1) {
             throw new IllegalArgumentException("Winning option number must be positive.");
         }
-        marketMakerName = requireName(marketMakerName, "marketMakerName");
-        requireFiniteNonNegative(eventBalanceBefore, "eventBalanceBefore");
-        requirePositiveFinite(payoutPerWinningShare, "payoutPerWinningShare");
+        marketMakerName = requireName(marketMakerName);
         userSettlements = List.copyOf(
                 Objects.requireNonNull(userSettlements, "userSettlements"));
         accountCredits = List.copyOf(
@@ -36,21 +34,35 @@ record SettlementPlan(
         requireFiniteNonNegative(totalWinnerNetPayout, "totalWinnerNetPayout");
         requireFiniteNonNegative(marketMakerResidual, "marketMakerResidual");
         requireFiniteNonNegative(totalMarketMakerCredit, "totalMarketMakerCredit");
+        requireFiniteNonNegative(eventBalanceBefore, "eventBalanceBefore");
+        if (Double.compare(eventBalanceAfter, 0.0) != 0) {
+            throw new IllegalArgumentException("Settled event balance must be zero.");
+        }
     }
 
-    private static String requireName(String value, String parameterName) {
-        String normalized = Objects.requireNonNull(value, parameterName).trim();
+    static SettlementOutcome from(SettlementPlan plan) {
+        Objects.requireNonNull(plan, "plan");
+        return new SettlementOutcome(
+                plan.eventId(),
+                plan.winningOptionNumber(),
+                plan.marketMakerName(),
+                plan.userSettlements(),
+                plan.accountCredits(),
+                plan.totalGrossPayout(),
+                plan.totalClosingCommission(),
+                plan.totalWinnerNetPayout(),
+                plan.marketMakerResidual(),
+                plan.totalMarketMakerCredit(),
+                plan.eventBalanceBefore(),
+                0.0);
+    }
+
+    private static String requireName(String value) {
+        String normalized = Objects.requireNonNull(value, "marketMakerName").trim();
         if (normalized.isEmpty()) {
-            throw new IllegalArgumentException(parameterName + " cannot be blank.");
+            throw new IllegalArgumentException("Market Maker name cannot be blank.");
         }
         return normalized;
-    }
-
-    private static void requirePositiveFinite(double value, String parameterName) {
-        if (!Double.isFinite(value) || value <= 0.0) {
-            throw new IllegalArgumentException(
-                    parameterName + " must be a positive finite number.");
-        }
     }
 
     private static void requireFiniteNonNegative(double value, String parameterName) {

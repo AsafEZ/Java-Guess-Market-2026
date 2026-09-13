@@ -306,6 +306,21 @@ public final class MarketEvent {
         }
     }
 
+    void validateSettlementClose(int optionNumber) {
+        requireActive();
+        findOption(optionNumber);
+        if (winningOptionNumber != null) {
+            throw new EngineException(
+                    ErrorCode.SETTLEMENT_STATE_MISMATCH,
+                    "The event already has a winning option.");
+        }
+    }
+
+    void applyValidatedSettlementClose(int optionNumber) {
+        winningOptionNumber = optionNumber;
+        status = EventStatus.CLOSED;
+    }
+
     void validateInitialFundingCapacity(double amount) {
         requireCanOpen();
         account.validateCredit(amount);

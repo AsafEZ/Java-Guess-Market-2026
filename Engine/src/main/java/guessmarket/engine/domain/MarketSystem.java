@@ -1,9 +1,9 @@
 package guessmarket.engine.domain;
 
-import guessmarket.engine.exception.EngineException;
-import guessmarket.engine.exception.ErrorCode;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.UserStatus;
+import guessmarket.engine.exception.EngineException;
+import guessmarket.engine.exception.ErrorCode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -141,6 +141,30 @@ public final class MarketSystem {
         return event.applyPreparedUserPurchase(preparedPurchase);
     }
 
+    public synchronized SettlementOutcome closeEvent(
+            int eventId,
+            String actingUserName,
+            int winningOptionNumber) {
+        SettlementPlan plan = prepareSettlement(
+                eventId, actingUserName, winningOptionNumber);
+        PreparedSettlement preparedSettlement = prevalidateSettlement(plan);
+        SettlementOutcome outcome = SettlementOutcome.from(plan);
+
+        for (PreparedCommission commission : preparedSettlement.commissions()) {
+            commission.user().applyValidatedAdditionalCommission(
+                    plan.eventId(),
+                    plan.winningOptionNumber(),
+                    commission.amount());
+        }
+        for (PreparedCredit credit : preparedSettlement.credits()) {
+            credit.user().applyValidatedCredit(credit.amount());
+        }
+        preparedSettlement.event().getAccount().applyValidatedSettlementDrain();
+        preparedSettlement.event().applyValidatedSettlementClose(
+                plan.winningOptionNumber());
+        return outcome;
+    }
+
     synchronized SettlementPlan prepareSettlement(
             int eventId,
             String actingUserName,
@@ -221,15 +245,16 @@ public final class MarketSystem {
                 "The Market Maker residual exceeds the supported numeric range.");
         double totalMarketMakerCredit = addFinite(
                 totalClosingCommission, marketMakerResidual);
-        List<AccountCredit> accountCredits = consolidateAccountCredits(
-                userSettlements,
-                actingUser.getName(),
-                totalMarketMakerCredit);
         requireConservation(
                 eventBalanceBefore,
                 totalWinnerNetPayout,
                 totalClosingCommission,
                 marketMakerResidual);
+        List<AccountCredit> accountCredits = consolidateAccountCredits(
+                userSettlements,
+                actingUser.getName(),
+                totalMarketMakerCredit,
+                eventBalanceBefore);
 
         return new SettlementPlan(
                 eventId,
@@ -273,28 +298,133 @@ public final class MarketSystem {
         }
     }
 
+    private PreparedSettlement prevalidateSettlement(SettlementPlan plan) {
+        MarketEvent event = getEvent(plan.eventId());
+        event.validateSettlementClose(plan.winningOptionNumber());
+        if (!event.isMarketMaker(plan.marketMakerName())) {
+            throw settlementStateMismatch("The event Market Maker changed.");
+        }
+        if (Double.compare(
+                event.getPayoutPerWinningShare(),
+                plan.payoutPerWinningShare()) != 0) {
+            throw settlementStateMismatch("The winning-share payout changed.");
+        }
+
+        validatePositionAggregates(event);
+        validateWinningPositionsMatchPlan(plan);
+
+        List<PreparedCredit> credits = new ArrayList<>();
+        double totalCredits = 0.0;
+        for (AccountCredit credit : plan.accountCredits()) {
+            User user = getUser(credit.userName());
+            user.validateCredit(credit.amount());
+            credits.add(new PreparedCredit(user, credit.amount()));
+            totalCredits = addFinite(totalCredits, credit.amount());
+        }
+        if (Double.compare(totalCredits, plan.eventBalanceBefore()) != 0) {
+            throw settlementStateMismatch(
+                    "Settlement credits do not exactly match the event account balance.");
+        }
+
+        List<PreparedCommission> commissions = new ArrayList<>();
+        for (UserSettlement settlement : plan.userSettlements()) {
+            if (settlement.closingCommission() == 0.0) {
+                continue;
+            }
+            User user = getUser(settlement.userName());
+            user.validateAdditionalCommission(
+                    plan.eventId(),
+                    plan.winningOptionNumber(),
+                    settlement.closingCommission());
+            commissions.add(new PreparedCommission(
+                    user, settlement.closingCommission()));
+        }
+
+        event.getAccount().validateSettlementDrain(plan.eventBalanceBefore());
+        return new PreparedSettlement(
+                event,
+                List.copyOf(commissions),
+                List.copyOf(credits));
+    }
+
+    private void validateWinningPositionsMatchPlan(SettlementPlan plan) {
+        Map<String, Long> expectedSharesByUserName = new LinkedHashMap<>();
+        for (UserSettlement settlement : plan.userSettlements()) {
+            if (expectedSharesByUserName.put(
+                    settlement.userName(), settlement.winningShares()) != null) {
+                throw settlementStateMismatch(
+                        "Settlement contains duplicate winner entries.");
+            }
+        }
+
+        for (User user : usersByName.values()) {
+            long expectedShares = expectedSharesByUserName.getOrDefault(
+                    user.getName(), 0L);
+            long actualShares = user.getSharesForOption(
+                    plan.eventId(), plan.winningOptionNumber());
+            if (actualShares != expectedShares) {
+                throw settlementStateMismatch(
+                        "Winning positions changed after settlement planning.");
+            }
+        }
+    }
+
     private static List<AccountCredit> consolidateAccountCredits(
             List<UserSettlement> settlements,
             String marketMakerName,
-            double totalMarketMakerCredit) {
-        Map<String, Double> creditsByUserName = new LinkedHashMap<>();
+            double totalMarketMakerCredit,
+            double eventBalance) {
+        List<AccountCredit> credits = new ArrayList<>();
+        double nonMarketMakerCredits = 0.0;
+        double marketMakerWinnerPayout = 0.0;
         for (UserSettlement settlement : settlements) {
-            if (settlement.netPayout() > 0.0) {
-                creditsByUserName.put(
-                        settlement.userName(),
-                        settlement.netPayout());
+            if (settlement.userName().equals(marketMakerName)) {
+                marketMakerWinnerPayout = addFinite(
+                        marketMakerWinnerPayout, settlement.netPayout());
+            } else if (settlement.netPayout() > 0.0) {
+                credits.add(new AccountCredit(
+                        settlement.userName(), settlement.netPayout()));
+                nonMarketMakerCredits = addFinite(
+                        nonMarketMakerCredits, settlement.netPayout());
             }
         }
-        if (totalMarketMakerCredit > 0.0) {
-            creditsByUserName.merge(
-                    marketMakerName,
-                    totalMarketMakerCredit,
-                    MarketSystem::addFinite);
+
+        double expectedMarketMakerCredit = addFinite(
+                marketMakerWinnerPayout, totalMarketMakerCredit);
+        double balancingMarketMakerCredit = requireFiniteNonNegative(
+                eventBalance - nonMarketMakerCredits,
+                "The consolidated Market Maker credit is invalid.");
+        double tolerance = Math.ulp(Math.max(1.0, Math.abs(eventBalance))) * 4.0;
+        if (Math.abs(expectedMarketMakerCredit - balancingMarketMakerCredit) > tolerance) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "The consolidated Market Maker credit does not conserve settlement funds.");
+        }
+        if (balancingMarketMakerCredit > 0.0) {
+            credits.add(new AccountCredit(
+                    marketMakerName, balancingMarketMakerCredit));
         }
 
-        return creditsByUserName.entrySet().stream()
-                .map(entry -> new AccountCredit(entry.getKey(), entry.getValue()))
-                .toList();
+        requireExactCreditConservation(eventBalance, credits);
+        return List.copyOf(credits);
+    }
+
+    private static void requireExactCreditConservation(
+            double eventBalance,
+            List<AccountCredit> credits) {
+        double creditTotal = 0.0;
+        for (AccountCredit credit : credits) {
+            creditTotal = addFinite(creditTotal, credit.amount());
+        }
+        if (Double.compare(creditTotal, eventBalance) != 0) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "Settlement credits cannot exactly represent the event account balance.");
+        }
+    }
+
+    private static EngineException settlementStateMismatch(String message) {
+        return new EngineException(ErrorCode.SETTLEMENT_STATE_MISMATCH, message);
     }
 
     private static double addFinite(double first, double second) {
@@ -375,6 +505,18 @@ public final class MarketSystem {
             total += event.getAccount().getBalance();
         }
         return total;
+    }
+
+    private record PreparedSettlement(
+            MarketEvent event,
+            List<PreparedCommission> commissions,
+            List<PreparedCredit> credits) {
+    }
+
+    private record PreparedCommission(User user, double amount) {
+    }
+
+    private record PreparedCredit(User user, double amount) {
     }
 }
 

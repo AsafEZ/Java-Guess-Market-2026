@@ -288,11 +288,12 @@ class SettlementPlanTest {
         recordHolding(fixture, fixture.bob, 1, 3L);
 
         SettlementPlan plan = fixture.system.prepareSettlement(1, "Maker", 1);
-        double creditTotal = plan.accountCredits().stream()
-                .mapToDouble(AccountCredit::amount)
-                .sum();
+        double creditTotal = 0.0;
+        for (AccountCredit credit : plan.accountCredits()) {
+            creditTotal += credit.amount();
+        }
 
-        assertEquals(plan.eventBalanceBefore(), creditTotal, TOLERANCE);
+        assertEquals(plan.eventBalanceBefore(), creditTotal);
         assertEquals(
                 plan.eventBalanceBefore(),
                 plan.totalWinnerNetPayout()

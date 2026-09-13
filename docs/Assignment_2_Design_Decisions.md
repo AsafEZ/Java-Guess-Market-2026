@@ -424,3 +424,34 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: Added pure, deterministic multi-user settlement planning with authorization, payout semantics, all-option ownership reconciliation, complete funding validation, per-winner results, and consolidated account credits. No settlement mutation or new public API was introduced.
 - Test result: Engine compilation passed; Maven ran 153 JUnit 5 tests with 0 failures and 0 errors, including 23 `SettlementPlanTest` tests and all 130 existing tests; `EngineSmokeTest` passed with assertions enabled; the scope and mutation audit and `git diff --check` passed.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 9B: Atomic Multi-User Settlement Execution
+
+- Status: Completed.
+- Goal: Execute the Assignment 2 settlement plan as one coordinated domain transaction that records closing commission, credits every recipient, drains the event account, closes the event, and returns an immutable result while preserving the Assignment 1 close path.
+- Transaction boundary: `MarketSystem.closeEvent(int eventId, String actingUserName, int winningOptionNumber)` is public and synchronized. It calls the package-private plan builder and completes prepare, prevalidation, and apply while holding the same `MarketSystem` monitor. Callers never supply a `SettlementPlan`, so a previously observed plan cannot be replayed after state changes.
+- Prevalidation order: The system prepares a fresh plan, revalidates the active event and unset winning option, confirms the Market Maker and payout-per-share state, reconciles all aggregate option shares and every winner's personal shares with the plan, resolves every credit recipient, validates every passive account credit, validates every positive closing-commission accumulation, verifies the exact event-account balance, and constructs the outcome before the first mutation.
+- Exact-credit decision: Non-Market-Maker winner credits retain deterministic registry order. The Market Maker credit is last and uses the remaining representable event balance after those credits, while being checked against the formula-derived Market Maker entitlement within floating-point tolerance. Sequentially summing the final `AccountCredit` list must compare exactly equal to `eventBalanceBefore`; otherwise planning is rejected before mutation.
+- Apply order: Positive closing commission is added to each winner's existing holding, consolidated account credits are applied once, `EventAccount` is drained to `0.0`, the winning option is stored, and `EventStatus.CLOSED` is assigned last. All apply methods consume values that were validated and contain no expected domain validation branches.
+- Event-account primitive: `validateSettlementDrain(expectedBalance)` requires the exact still-current finite balance and raises `SETTLEMENT_STATE_MISMATCH` if it changed. `applyValidatedSettlementDrain()` assigns zero without changing `totalCommissionCollected`; closing commission belongs to the Market Maker's user account, not to the event account.
+- Event-close primitive: `MarketEvent.validateSettlementClose` verifies `ACTIVE`, a valid winning option, and that no winner is already stored. `applyValidatedSettlementClose` stores the winning option and then assigns `CLOSED` as the final logical mutation; it does not calculate payouts, transfer money, or invoke the legacy close path.
+- Outcome structure: Public immutable domain record `SettlementOutcome` contains event and winner identity, Market Maker name, immutable `UserSettlement` and consolidated `AccountCredit` snapshots, all payout/commission/residual totals, and event balances before and after settlement. `UserSettlement` and `AccountCredit` are public immutable domain line-item records so the public outcome does not expose inaccessible internal types. `SettlementPlan` remains package-private and is not returned.
+- Commission bookkeeping: Each positive `UserSettlement.closingCommission` is prevalidated and added to the winner's existing position under the winning option. It accumulates with purchase commission without changing shares or `amountPaid`, is not written to `EventAccount`, and is applied at most once because subsequent closes fail on `CLOSED` before planning.
+- Blocked-user decision: A blocked Market Maker remains unauthorized to close. A blocked winner is included in the plan, receives passive credit through the existing credit primitive, and remains `BLOCKED`.
+- Atomicity result: Winner-credit overflow, Market Maker credit overflow, closing-commission overflow, position mismatch, insufficient event funds, invalid authorization, invalid lifecycle, invalid winner, and changed payout state all fail before any apply. Tests compare complete snapshots of balances, statuses, positions, commissions, event funds, event lifecycle, option shares, and trade history after rejected closes.
+- Compatibility decision: `MarketEvent.close(int)` and `CloseOutcome` remain the explicit Assignment 1 path with unchanged accounting. Assignment 2 does not infer owners for legacy shares and does not fall back when user positions and aggregate shares differ. `GuessMarketEngine`, `CloseEventResult`, ConsoleUI, XML/JAXB, Order Book, JavaFX, and FXML are unchanged.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/AccountCredit.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/EventAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/SettlementOutcome.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/SettlementPlan.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/UserSettlement.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/SettlementExecutionTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/SettlementPlanTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added prevalidated atomic multi-user settlement, immutable public domain results, exact full-account distribution, closing-commission bookkeeping, passive blocked-winner payout, complete event-account draining, and a final one-time close transition without changing the legacy close flow.
+- Test result: Engine compilation passed; Maven ran 174 JUnit 5 tests with 0 failures and 0 errors, including 21 `SettlementExecutionTest` tests and all 153 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the final atomicity audit passed.
+- Commit ID: Recorded in the final run summary after commit creation.
