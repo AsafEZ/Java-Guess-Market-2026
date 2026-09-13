@@ -395,3 +395,32 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: Added per-option commission state, compatible recording overloads, scalar commission queries and delegation, future closing-commission primitives, and gross commission bookkeeping in the existing atomic purchase transaction. No settlement, payout, event closing, Engine API, XML/JAXB, Order Book, or UI code was added.
 - Test result: Engine compilation passed; Maven ran 130 JUnit 5 tests with 0 failures and 0 errors, including 19 `MarketPositionTest` tests and 15 `UserAwarePurchaseTest` tests; the focused commission-overflow transaction test passed; `EngineSmokeTest` passed with assertions enabled.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 9A: Pure Multi-User Settlement Planning
+
+- Status: Completed.
+- Goal: Calculate the complete Assignment 2 close settlement as an immutable domain plan without changing event lifecycle, event funds, user accounts, positions, commission bookkeeping, aggregate option shares, or trade history.
+- Settlement boundary: `MarketSystem.prepareSettlement(int eventId, String actingUserName, int winningOptionNumber)` is package-private and synchronized. It resolves the event and actor, validates the active lifecycle and Market Maker authorization, and creates the complete plan. It is not exposed through `GuessMarketEngine` or DTOs.
+- Permission decision: The event must be active and have an assigned Market Maker; only that user may prepare settlement, and a blocked Market Maker is rejected. A blocked winner is still included because payout is passive and planning does not change the winner's `BLOCKED` status. The known assignment limitation remains that an event can stay open if its Market Maker becomes blocked; no administrator or recovery mechanism is invented.
+- Payout abstraction: Added the semantic `WinningPayoutOperations` capability without expanding the minimal `TradingMechanism` contract. `LmsrTradingOperations` extends the capability and supplies the LMSR payout of `1.0` per winning share. A future Order Book mechanism can expose its configured `d` through the same capability, leaving the settlement algorithm independent of concrete mechanism classes.
+- Plan structure: Package-private records `SettlementPlan`, `UserSettlement`, and `AccountCredit` contain immutable scalar values and `List.copyOf` snapshots. The plan records event identity, winning option, Market Maker, pre-close event balance, payout per share, per-winner results, consolidated account credits, gross payout, closing commission, net winner payout, residual, and the Market Maker's commission-plus-residual entitlement.
+- Payout formulas: For each winner, `grossPayout = winningShares * payoutPerWinningShare`; `closingCommission` is `CommissionPolicy.calculate(grossPayout)` only for `ON_CLOSE`, otherwise zero; and `netPayout = grossPayout - closingCommission`. Totals reject non-finite values and numeric overflow.
+- Position invariant: Before calculating payouts, the plan sums every user's position shares with `Math.addExact` for every event option and compares each total with `MarketOption.purchasedShares`. Any mismatch raises `POSITION_AGGREGATE_MISMATCH`; arithmetic overflow raises `ARITHMETIC_OVERFLOW`. There is no legacy fallback from this Assignment 2 path.
+- Event-fund decision: `totalGrossPayout` must not exceed `eventBalanceBefore`; otherwise `INSUFFICIENT_EVENT_FUNDS` rejects the plan. The Market Maker is not charged for a shortfall and partial payout is not planned. `marketMakerResidual = eventBalanceBefore - totalGrossPayout`, and `totalMarketMakerCredit = totalClosingCommission + marketMakerResidual`.
+- Conservation decision: The plan verifies `totalWinnerNetPayout + totalClosingCommission + marketMakerResidual = eventBalanceBefore` within a small floating-point tolerance. Consolidated `AccountCredit` values therefore distribute the whole event balance exactly at the domain model's `double` precision.
+- Credit consolidation: Winner net payouts are accumulated by canonical user name in deterministic user-registry order. All closing commission and residual are assigned to the Market Maker. When the Market Maker is also a winner, the winner payout and Market Maker entitlement are merged into one credit; zero-value credits and artificial self-transfers are omitted.
+- Commission bookkeeping: Each `UserSettlement` carries the closing commission that Subtask 9B will later validate and add to the winner's position under the winning option. Subtask 9A does not invoke the existing commission apply primitive.
+- Stale-plan strategy: A prepared plan will not become a caller-held command. Subtask 9B will prepare and apply settlement inside one synchronized `MarketSystem` close operation, preventing external reuse of a plan after state changes.
+- Compatibility decision: The existing `MarketEvent.close`, `CloseOutcome`, and `CloseEventResult` remain unchanged for Assignment 1. This subtask does not add `MarketSystem.closeEvent`, `SettlementOutcome`, payouts, account clearing, the `CLOSED` transition, public Engine APIs, XML/JAXB, Order Book implementation, or UI integration.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/trading/WinningPayoutOperations.java`
+  - `Engine/src/main/java/guessmarket/engine/trading/lmsr/LmsrTradingOperations.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/SettlementPlan.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketEvent.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketSystem.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/SettlementPlanTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added pure, deterministic multi-user settlement planning with authorization, payout semantics, all-option ownership reconciliation, complete funding validation, per-winner results, and consolidated account credits. No settlement mutation or new public API was introduced.
+- Test result: Engine compilation passed; Maven ran 153 JUnit 5 tests with 0 failures and 0 errors, including 23 `SettlementPlanTest` tests and all 130 existing tests; `EngineSmokeTest` passed with assertions enabled; the scope and mutation audit and `git diff --check` passed.
+- Commit ID: Recorded in the final run summary after commit creation.

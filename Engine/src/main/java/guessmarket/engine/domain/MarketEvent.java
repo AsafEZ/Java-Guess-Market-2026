@@ -2,6 +2,7 @@ package guessmarket.engine.domain;
 
 import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.trading.TradingMechanism;
+import guessmarket.engine.trading.WinningPayoutOperations;
 import guessmarket.engine.trading.lmsr.LmsrTradingOperations;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
@@ -281,6 +282,15 @@ public final class MarketEvent {
 
     public double getRequiredInitialSubsidy() {
         return requireLmsrOperations().calculateInitialSubsidy();
+    }
+
+    double getPayoutPerWinningShare() {
+        if (tradingMechanism instanceof WinningPayoutOperations payoutOperations) {
+            return payoutOperations.getPayoutPerWinningShare();
+        }
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not expose winning-share payout semantics.");
     }
 
     void requireCanOpen() {

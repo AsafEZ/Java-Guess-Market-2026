@@ -2,6 +2,7 @@ package guessmarket.engine.domain;
 
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.UserStatus;
 
 import java.util.ArrayList;
@@ -138,6 +139,198 @@ public final class MarketSystem {
                 quote.shareCost(),
                 quote.commission());
         return event.applyPreparedUserPurchase(preparedPurchase);
+    }
+
+    synchronized SettlementPlan prepareSettlement(
+            int eventId,
+            String actingUserName,
+            int winningOptionNumber) {
+        MarketEvent event = getEvent(eventId);
+        User actingUser = getUser(actingUserName);
+
+        event.requireActive();
+        if (!event.hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + eventId + " does not have a Market Maker.");
+        }
+        if (!event.isMarketMaker(actingUser.getName())) {
+            throw new EngineException(
+                    ErrorCode.USER_NOT_MARKET_MAKER,
+                    "The user is not authorized to close event " + eventId + ".");
+        }
+        if (actingUser.getStatus() == UserStatus.BLOCKED) {
+            throw new EngineException(
+                    ErrorCode.USER_ACCOUNT_BLOCKED,
+                    "A blocked Market Maker cannot close an event.");
+        }
+
+        event.findOption(winningOptionNumber);
+        validatePositionAggregates(event);
+
+        double payoutPerWinningShare = requirePositiveFinite(
+                event.getPayoutPerWinningShare(),
+                "The winning-share payout must be a positive finite value.");
+        List<UserSettlement> userSettlements = new ArrayList<>();
+        double totalGrossPayout = 0.0;
+        double totalClosingCommission = 0.0;
+        double totalWinnerNetPayout = 0.0;
+
+        for (User user : usersByName.values()) {
+            long winningShares = user.getSharesForOption(eventId, winningOptionNumber);
+            if (winningShares == 0L) {
+                continue;
+            }
+
+            double grossPayout = requireFiniteNonNegative(
+                    winningShares * payoutPerWinningShare,
+                    "A winner's gross payout exceeds the supported numeric range.");
+            double closingCommission = event.getCommissionPolicy().type()
+                    == CommissionType.ON_CLOSE
+                    ? requireFiniteNonNegative(
+                            event.getCommissionPolicy().calculate(grossPayout),
+                            "A winner's closing commission exceeds the supported numeric range.")
+                    : 0.0;
+            double netPayout = requireFiniteNonNegative(
+                    grossPayout - closingCommission,
+                    "A winner's net payout exceeds the supported numeric range.");
+
+            userSettlements.add(new UserSettlement(
+                    user.getName(),
+                    winningShares,
+                    grossPayout,
+                    closingCommission,
+                    netPayout));
+            totalGrossPayout = addFinite(totalGrossPayout, grossPayout);
+            totalClosingCommission = addFinite(
+                    totalClosingCommission, closingCommission);
+            totalWinnerNetPayout = addFinite(totalWinnerNetPayout, netPayout);
+        }
+
+        double eventBalanceBefore = requireFiniteNonNegative(
+                event.getAccount().getBalance(),
+                "The event account balance must be finite and non-negative.");
+        if (eventBalanceBefore < totalGrossPayout) {
+            throw new EngineException(
+                    ErrorCode.INSUFFICIENT_EVENT_FUNDS,
+                    "Event " + eventId + " cannot cover the complete settlement.");
+        }
+
+        double marketMakerResidual = requireFiniteNonNegative(
+                eventBalanceBefore - totalGrossPayout,
+                "The Market Maker residual exceeds the supported numeric range.");
+        double totalMarketMakerCredit = addFinite(
+                totalClosingCommission, marketMakerResidual);
+        List<AccountCredit> accountCredits = consolidateAccountCredits(
+                userSettlements,
+                actingUser.getName(),
+                totalMarketMakerCredit);
+        requireConservation(
+                eventBalanceBefore,
+                totalWinnerNetPayout,
+                totalClosingCommission,
+                marketMakerResidual);
+
+        return new SettlementPlan(
+                eventId,
+                winningOptionNumber,
+                actingUser.getName(),
+                eventBalanceBefore,
+                payoutPerWinningShare,
+                userSettlements,
+                accountCredits,
+                totalGrossPayout,
+                totalClosingCommission,
+                totalWinnerNetPayout,
+                marketMakerResidual,
+                totalMarketMakerCredit);
+    }
+
+    private void validatePositionAggregates(MarketEvent event) {
+        for (MarketOption option : event.getOptions()) {
+            long positionShares = 0L;
+            for (User user : usersByName.values()) {
+                try {
+                    positionShares = Math.addExact(
+                            positionShares,
+                            user.getSharesForOption(event.getId(), option.getOptionNumber()));
+                } catch (ArithmeticException exception) {
+                    throw new EngineException(
+                            ErrorCode.ARITHMETIC_OVERFLOW,
+                            "User position shares exceed the supported range.",
+                            exception);
+                }
+            }
+            if (positionShares != option.getPurchasedShares()) {
+                throw new EngineException(
+                        ErrorCode.POSITION_AGGREGATE_MISMATCH,
+                        "User positions do not match aggregate shares for event "
+                                + event.getId()
+                                + ", option "
+                                + option.getOptionNumber()
+                                + ".");
+            }
+        }
+    }
+
+    private static List<AccountCredit> consolidateAccountCredits(
+            List<UserSettlement> settlements,
+            String marketMakerName,
+            double totalMarketMakerCredit) {
+        Map<String, Double> creditsByUserName = new LinkedHashMap<>();
+        for (UserSettlement settlement : settlements) {
+            if (settlement.netPayout() > 0.0) {
+                creditsByUserName.put(
+                        settlement.userName(),
+                        settlement.netPayout());
+            }
+        }
+        if (totalMarketMakerCredit > 0.0) {
+            creditsByUserName.merge(
+                    marketMakerName,
+                    totalMarketMakerCredit,
+                    MarketSystem::addFinite);
+        }
+
+        return creditsByUserName.entrySet().stream()
+                .map(entry -> new AccountCredit(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    private static double addFinite(double first, double second) {
+        return requireFiniteNonNegative(
+                first + second,
+                "A settlement total exceeds the supported numeric range.");
+    }
+
+    private static double requirePositiveFinite(double value, String message) {
+        if (!Double.isFinite(value) || value <= 0.0) {
+            throw new EngineException(ErrorCode.ARITHMETIC_OVERFLOW, message);
+        }
+        return value;
+    }
+
+    private static double requireFiniteNonNegative(double value, String message) {
+        if (!Double.isFinite(value) || value < 0.0) {
+            throw new EngineException(ErrorCode.ARITHMETIC_OVERFLOW, message);
+        }
+        return value;
+    }
+
+    private static void requireConservation(
+            double eventBalance,
+            double winnerNetPayout,
+            double closingCommission,
+            double marketMakerResidual) {
+        double plannedTotal = addFinite(
+                addFinite(winnerNetPayout, closingCommission),
+                marketMakerResidual);
+        double tolerance = Math.ulp(Math.max(1.0, Math.abs(eventBalance))) * 4.0;
+        if (Math.abs(plannedTotal - eventBalance) > tolerance) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "Settlement credits do not conserve the event account balance.");
+        }
     }
 
     public void addEvent(MarketEvent event) {
