@@ -610,6 +610,26 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The focused schema suite ran 14 tests with 0 failures and 0 errors: 5 schema-valid and 9 schema-invalid. The complete Engine suite ran 225 tests with 0 failures and 0 errors, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compilation and all 3 ConsoleUI JUnit tests passed.
 - Commit ID: Recorded in the final run summary after commit creation.
 
+## Stage 2 - Subtask 11B.3: Secure XML Assignment Version Detection
+
+- Status: Completed. The detector is not yet connected to `loadSystem`; JAXB v2, v2 business validation, v2 system construction, and Order Book loading remain unimplemented.
+- Goal: Classify a selected XML document as Assignment 1 or Assignment 2 before a future loader selects its XSD and JAXB path, without using file names, source directories, unmarshalling, or trial validation.
+- Existing-load audit: `GuessMarketEngineImpl.loadSystem` currently validates the selected path and passes it directly to `XmlMarketLoader`. That loader creates a JAXB 4.0.5 context for the Assignment 1 bindings, attaches the classpath `GM-EX1-Schema.xsd` to each `Unmarshaller`, and performs v1 validation and unmarshalling in one operation. XML failures use `XML_PARSE_ERROR`; invalid and missing paths use the existing `INVALID_FILE_PATH` and `FILE_NOT_FOUND` codes.
+- Structural-marker decision: Both versions require the unqualified `Guess-Market` root and a direct `GM-events` child. A direct root `GM-users` child is a v2 marker. The detector also recognizes `comision` as a v1 marker and `commission`, `initial-cash`, and `GM-order-book` as v2 markers only at their exact schema-defined parent paths. A v2-looking element nested at another depth does not influence classification and remains the later XSD validator's responsibility.
+- Ambiguity decision: A document containing both v1 and v2 markers is rejected with `XML_PARSE_ERROR` as hybrid. A document with no usable marker is rejected as ambiguous. There is no sequential schema attempt or fallback from one version to the other.
+- Schema-location decision: `xsi:noNamespaceSchemaLocation` is never the primary version signal. A recognized `GM-EX1-Schema.xsd` or `GM-EX2-Schema.xsd` declaration is checked only after structural classification and is rejected when it contradicts the structure. Missing or unrecognized declarations do not override the structural result and are not fetched.
+- Parser-security decision: `XmlFormatDetector` performs a stateless StAX pre-scan over a closed `InputStream`. DTD support, external entities, and entity replacement are disabled; external DTD access is empty when supported; a rejecting `XMLResolver` prevents resource resolution; and `DOCTYPE` and entity-reference events are rejected explicitly. The detector builds no DOM, invokes no JAXB code, performs no schema validation, and makes no network or filesystem lookup beyond the selected XML path.
+- API decision: Package-private `XmlFormatVersion` and `XmlFormatDetector` live in `guessmarket.engine.loading`, keeping version selection internal to the future loading pipeline and out of the public Engine API. Existing error codes are sufficient, so `ErrorCode` was not changed.
+- Test matrix: The focused suite covers a valid v1 document; the v2 `small.xml`, `multiple.xml`, and `schema-boundaries.xml` fixtures; an unknown misleading schema location; both recognized cross-version schema-location contradictions; a hybrid `GM-users` plus legacy `comision` document; a misplaced nested v2 marker; a wrong root; malformed XML; `DOCTYPE`; an XXE attempt; a missing path; and repeated alternating calls proving that no detection state is shared.
+- Compatibility boundary: `GuessMarketEngine`, `GuessMarketEngineImpl`, `XmlMarketLoader`, schemas, JAXB bindings, validators, factories, original instructor fixtures, ConsoleUI, and JavaFXUI were not changed. Assignment 1 loading still follows its existing v1-only path.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/loading/XmlFormatVersion.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/XmlFormatDetector.java`
+  - `Engine/src/test/java/guessmarket/engine/loading/XmlFormatDetectorTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: The focused detector suite ran 15 tests with 0 failures and 0 errors. The complete Engine suite ran 240 tests with 0 failures and 0 errors, and `EngineSmokeTest` passed with assertions enabled. ConsoleUI compiled and ran all 3 JUnit 5 tests successfully. JavaFXUI compiled and ran all 3 JUnit 5 tests successfully. The security, no-fallback, unchanged-loader, scope, and whitespace audits passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
 ## Stage 14A: JavaFX UI Module Foundation
 
 - Status: Completed. Full Events and Users screens, Engine integration, XML file selection, Order Book UI, and final packaging remain deferred to later Stage 14 work.
