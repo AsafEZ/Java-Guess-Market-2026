@@ -582,3 +582,30 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Validation result: The official XSD compiled successfully as an XML Schema, and all four supplied XML files validated successfully against it. Engine `clean package` passed with 211 JUnit 5 tests, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compilation and all 3 ConsoleUI JUnit tests passed.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 11B.2: XML v2 Schema Contract Tests
+
+- Status: Completed. Subtask 11B.3 and all loader, JAXB, and business-validation work remain unimplemented.
+- Goal: Replace the one-time manual validation of `GM-EX2-Schema.xsd` with deterministic JUnit coverage for instructor inputs, structural failures, and schema-level business boundaries.
+- Validation-boundary decision: XSD validation proves only the XML structure and datatypes declared by the official schema. It must accept structurally valid documents even when Java business rules will later reject values or references. In particular, `error-2.xml` and `error-3.xml` remain schema-valid and are reserved for business-validation coverage in Subtask 11B.5.
+- Test-infrastructure decision: `XmlV2SchemaValidationTest` loads the schema and every XML document from the classpath. It configures `SchemaFactory` for W3C XML Schema with secure processing and empty external DTD/schema access, closes every stream, and creates and hardens a new `Validator` for each validation. No absolute path, working-directory assumption, XML `schemaLocation` lookup, network access, or shared `Validator` is used.
+- Schema-valid cases: The four instructor files plus `schema-boundaries.xml` provide 5 passing cases. The derived boundary fixture compactly proves that root children may be reversed, one option is schema-valid, `b=0`, Order Book `initial=-1` and `d=0`, `initial-cash=0`, and zero or negative event ids are all accepted at the XSD layer.
+- Schema-invalid cases: Nine minimal, well-formed fixtures separately cover missing users, missing events, the v1 `comision` spelling, multiple methods in one `xs:choice`, a missing Order Book `d` attribute, invalid `allow-mint`, more than two options, invalid event-child order, and a non-integer event id. Each fixture was audited to fail for its named XSD rule rather than malformed XML or a missing resource.
+- Source-integrity result: The official XSD and all four instructor XML files retain the SHA-256 values recorded in `Engine/src/test/resources/assignment2/README.md`. None was edited by this subtask.
+- Compatibility boundary: No production code, POM, official XSD, instructor fixture, JAXB class, loader, version detector, `ErrorCode`, business validation, Order Book, ConsoleUI, or JavaFX code was changed.
+- Changed files:
+  - `Engine/src/test/java/guessmarket/engine/loading/XmlV2SchemaValidationTest.java`
+  - `Engine/src/test/resources/assignment2/README.md`
+  - `Engine/src/test/resources/assignment2/xml/edge-cases/schema-boundaries.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/missing-users.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/missing-events.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/misspelled-commission.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/multiple-trading-methods.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/missing-order-book-attribute.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/invalid-allow-mint.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/too-many-options.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/invalid-event-sequence.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-schema/non-integer-event-id.xml`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: The focused schema suite ran 14 tests with 0 failures and 0 errors: 5 schema-valid and 9 schema-invalid. The complete Engine suite ran 225 tests with 0 failures and 0 errors, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compilation and all 3 ConsoleUI JUnit tests passed.
+- Commit ID: Recorded in the final run summary after commit creation.
