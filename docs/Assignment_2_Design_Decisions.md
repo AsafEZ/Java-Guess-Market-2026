@@ -62,7 +62,7 @@
 
 ## Stage 2: Users, Accounts, Positions, and Market Maker Assignment
 
-- Status: In progress; Subtasks 1 through 9B and Subtask 10B.1 are completed.
+- Status: In progress; Subtasks 1 through 9B and Subtasks 10B.1 through 10B.2 are completed.
 - Goal: Add multi-user ownership, private user accounts, per-event market positions, and Market Maker assignment before implementing the Order Book mechanism.
 - Rationale: User funds and holdings must have explicit ownership before LMSR can support multiple participants and before a future Order Book can transfer money and shares between users.
 - Design decision: Use the user-owned-position model. `MarketSystem` owns users and events; each `User` owns one `UserAccount`; each `UserAccount` owns its `MarketPosition` instances keyed by event id. An event does not keep a second copy of user positions.
@@ -135,7 +135,7 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 7. Completed for opening: Subtask 7A adds the not-started lifecycle and explicit Assignment 2 creation path; Subtask 7B adds acting-user authorization and LMSR subsidy transfer on open. User-aware close remains a later focused change.
 8. Completed: Subtask 8A separates pure LMSR purchase quoting from execution; Subtasks 8B.1 and 8B.2 add transaction primitives, buyer-aware trades, and atomic user-aware purchases; Subtask 8C records purchase commissions in user positions.
 9. Completed: Implement multi-user settlement in two focused parts: 9A creates an immutable, non-mutating settlement plan; 9B prevalidates and atomically distributes funds before closing the event.
-10. In progress: Subtask 10B.1 adds Task 2 DTO projections and mappers; later focused subtasks will extend the public Engine API and verify Assignment 1 ConsoleUI compatibility.
+10. In progress: Subtask 10B.1 adds Task 2 DTO projections and mappers; Subtask 10B.2 exposes them through the public Engine API; Subtask 10B.3 will verify and repair Assignment 1 ConsoleUI compatibility.
 11. Add Assignment 2 XML/XSD/JAXB mapping, validation, Market Maker assignment, and atomic replacement of users and events.
 12. Add multi-user integration tests covering loading, participation, balance changes, blocking, Market Maker authorization, LMSR opening, purchasing, and settlement, while retaining all Assignment 1 regression checks that remain applicable.
 
@@ -489,4 +489,28 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: Added the complete Task 2 projection layer and mapper coverage without changing a public Engine method or any existing Task 1 DTO.
 - Test result: Engine compilation passed; Maven ran 182 JUnit 5 tests with 0 failures and 0 errors, including 8 `Task2DtoMapperTest` tests and all 174 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the dependency audit passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 10B.2: Task 2 Engine API Operations
+
+- Status: Completed.
+- Goal: Expose the existing Task 2 user, event-lifecycle, purchase, and settlement capabilities through `GuessMarketEngine` using the immutable DTO projections introduced in Subtask 10B.1.
+- Rationale: UI and other clients must interact through a stable public Engine boundary without receiving domain objects or duplicating transaction rules outside `MarketSystem`.
+- API decision: Added `getAllMarketEvents`, `getMarketEventDetails`, `getAllUsers`, `getUserDetails`, user-aware `openEvent`, user-aware `purchaseShares`, and user-aware `closeEvent`. All seven Assignment 1 methods and their DTOs retain their existing signatures and implementation paths. Market Maker assignment is intentionally not exposed and remains a Stage 11 XML-loading responsibility.
+- Delegation decision: Each Task 2 operation first requires a loaded system, validates only public-boundary input, invokes exactly one appropriate `MarketSystem` operation, and maps the current result through the 10B.1 mappers. Opening, authorization, account transfers, purchase bookkeeping, settlement planning, atomicity, and mutation ordering remain exclusively in the domain layer.
+- User-name boundary: Added `INVALID_USER_NAME`. Task 2 API methods reject null and blank names with `EngineException`, trim leading and trailing whitespace, and preserve case-sensitive identity. System-load validation occurs first, so every operation on an unloaded engine consistently returns `NO_SYSTEM_LOADED` without leaking `NullPointerException` or `IllegalArgumentException`.
+- Query decision: Event and user lists preserve `MarketSystem` insertion order and are not sorted by the Engine. Detail operations return fresh immutable snapshots, including LMSR mechanism details, current balances, status, positions, Market Maker event ids, and participant projections.
+- Purchase decision: The new overload delegates to `MarketSystem.purchaseShares`, never to the legacy `MarketEvent.purchase`. Its `UserPurchaseResult` includes the canonical buyer name and updated event and buyer snapshots. An active buyer with insufficient balance completes the purchase and becomes `BLOCKED`, matching the established Task 2 rule; the result exposes the negative balance and completed position.
+- Settlement decision: The new close overload delegates to atomic `MarketSystem.closeEvent`, never to legacy `MarketEvent.close`. It maps the complete `SettlementOutcome`, including consolidated credits when the Market Maker is also a winner and passive payout to blocked winners without unblocking them.
+- Test-construction decision: `GuessMarketEngineImpl` now declares its previously implicit public no-argument constructor explicitly with unchanged production initialization. A package-private constructor accepts a non-null `MarketSystem` for same-package tests, treats it as loaded, and exposes no getter or public injection API.
+- Failure behavior: Domain `EngineException` instances and error codes propagate unchanged. The Engine performs no compensation, retry, or post-failure mutation. A controlled failing mechanism verifies that a rejected quote is attempted exactly once and leaves accounts, positions, event funds, aggregate shares, and trades unchanged.
+- Compatibility boundary: XML/XSD/JAXB, ConsoleUI, the known `NOT_STARTED` ConsoleUI switch gap, JavaFX, Order Book, domain algorithms, mutation order, Task 1 DTOs, and Market Maker assignment APIs are unchanged.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/api/GuessMarketEngine.java`
+  - `Engine/src/main/java/guessmarket/engine/impl/GuessMarketEngineImpl.java`
+  - `Engine/src/main/java/guessmarket/engine/exception/ErrorCode.java`
+  - `Engine/src/test/java/guessmarket/engine/impl/Task2EngineApiTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Added the complete public Task 2 Engine facade over the existing domain behavior while preserving explicit legacy paths and preventing domain leakage.
+- Test result: Engine compilation passed; Maven ran 200 JUnit 5 tests with 0 failures and 0 errors, including 18 `Task2EngineApiTest` tests and all 182 existing tests; `EngineSmokeTest` passed with assertions enabled; `git diff --check` and the API dependency audit passed.
 - Commit ID: Recorded in the final run summary after commit creation.
