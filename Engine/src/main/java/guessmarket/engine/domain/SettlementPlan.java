@@ -18,9 +18,6 @@ record SettlementPlan(
         double totalMarketMakerCredit) {
 
     SettlementPlan {
-        if (eventId < 1) {
-            throw new IllegalArgumentException("Event id must be positive.");
-        }
         if (winningOptionNumber < 1) {
             throw new IllegalArgumentException("Winning option number must be positive.");
         }

@@ -261,9 +261,6 @@ class UserAccountTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> account.recordExecutedPurchase(0, 1, 1L, 2.0));
-        assertThrows(
-                IllegalArgumentException.class,
                 () -> account.recordExecutedPurchase(7, 0, 1L, 2.0));
         assertThrows(
                 IllegalArgumentException.class,

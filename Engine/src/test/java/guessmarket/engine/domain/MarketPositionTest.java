@@ -108,9 +108,9 @@ class MarketPositionTest {
     }
 
     @Test
-    void rejectsInvalidEventId() {
-        assertThrows(IllegalArgumentException.class, () -> new MarketPosition(0));
-        assertThrows(IllegalArgumentException.class, () -> new MarketPosition(-1));
+    void acceptsZeroAndNegativeEventIds() {
+        assertEquals(0, new MarketPosition(0).getEventId());
+        assertEquals(-1, new MarketPosition(-1).getEventId());
     }
 
     @Test
@@ -120,6 +120,9 @@ class MarketPositionTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> position.recordPurchase(0, 2L, 5.0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> position.recordPurchase(-1, 2L, 5.0));
 
         assertUnchangedInitialPurchase(position);
     }

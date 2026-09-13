@@ -14,9 +14,6 @@ public final class MarketPosition {
     private final Map<Integer, OptionHolding> holdingsByOption = new LinkedHashMap<>();
 
     public MarketPosition(int eventId) {
-        if (eventId < 1) {
-            throw new IllegalArgumentException("Event id must be positive.");
-        }
         this.eventId = eventId;
     }
 

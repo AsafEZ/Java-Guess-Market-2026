@@ -536,3 +536,29 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: Stage 10 now provides two explicit, compatible Engine API generations and a compiling Assignment 1 ConsoleUI with exhaustive lifecycle-status formatting.
 - Test result: Engine ran 204 tests and ConsoleUI ran 3 tests, all passing; both modules compiled, the Engine smoke test passed with assertions, and the final scope and dependency audits were clean.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 11B.0: Full Integer Event Identifiers
+
+- Status: Completed.
+- Goal: Align the domain with the official Assignment 2 schema by accepting the complete Java `int` range for event identifiers, including zero, negative values, `Integer.MIN_VALUE`, and `Integer.MAX_VALUE`.
+- Identifier decision: The official v2 contract uses `xs:int` and defines no business rule requiring a positive event id. Event ids therefore retain their `int` type and exact value. Uniqueness and lookup continue to use exact `Map<Integer, ...>` keys, so values such as `-1` and `1` remain distinct.
+- Boundary decision: An event id is an opaque identifier, not a list index or UI selection number. Option numbers, ConsoleUI menu positions, and purchase quantities remain positive and one-based where already required. No option-number, quantity, or commission validation was relaxed.
+- Audit result: No event id is used as a sentinel or as an array/list index. Event ids are stored as scalar values, DTO fields, and map keys. Positivity assumptions existed only in `MarketPosition`, its `UserAccount` access path, and the immutable transaction values `PurchaseQuote`, `SettlementPlan`, and `SettlementOutcome`; those checks were removed.
+- Assignment 2 version-detection decision: Future loading will classify documents structurally. v1 markers select only the v1 path, v2 markers select only the v2 path, mixed markers are rejected as a hybrid, and `schemaLocation` is used only as a consistency check. Schemas will not be tried sequentially as version detection.
+- JAXB v2 decision: Future v2 bindings will be generated with JAXB/XJC 4.0.5 in a package separate from the existing v1 bindings.
+- Assignment 2 loading decisions: A future `INVALID_INITIAL_CASH` error will reject `initial-cash <= 0`. Valid v2 LMSR events will be constructed as `NOT_STARTED` with an empty `EventAccount`. Complete files containing Order Book events remain unsupported until a real Order Book implementation exists.
+- `LoadResult` decision: The existing DTO remains unchanged. Its `totalInitialSubsidy` will later report the sum of required subsidies for LMSR events in the loaded file, calculated from the same LMSR source of truth without funding any event or mutating any account. Event accounts remain at zero after v2 loading and are funded only by `openEvent`; an Order Book `initial` value is not LMSR subsidy and is excluded.
+- Compatibility boundary: No XSD, JAXB class, loader, factory, `LoadResult`, Order Book, JavaFX, or ConsoleUI production code was changed. Assignment 1 flows with positive identifiers retain their behavior.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/domain/MarketPosition.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/UserAccount.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/PurchaseQuote.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/SettlementPlan.java`
+  - `Engine/src/main/java/guessmarket/engine/domain/SettlementOutcome.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/MarketPositionTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/UserAccountTest.java`
+  - `Engine/src/test/java/guessmarket/engine/domain/EventIdentifierRangeTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: Removed only event-id positivity validation and added boundary coverage across positions, accounts, users, immutable transaction values, and the market-system registry. A stale test expectation that treated event id zero as invalid was updated to test the remaining invalid purchase inputs.
+- Test result: Engine compilation passed; Maven ran 211 JUnit 5 tests with 0 failures and 0 errors, including 7 focused identifier-range tests; `EngineSmokeTest` passed with assertions enabled; ConsoleUI compilation passed and its 3 JUnit 5 tests passed. The option-number validation audit and event-id sentinel/index audit passed.
+- Commit ID: Recorded in the final run summary after commit creation.

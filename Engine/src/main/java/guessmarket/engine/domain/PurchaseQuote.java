@@ -37,9 +37,6 @@ record PurchaseQuote(
     }
 
     PurchaseQuote {
-        if (eventId < 1) {
-            throw new IllegalArgumentException("Event id must be positive.");
-        }
         if (optionNumber < 1) {
             throw new IllegalArgumentException("Option number must be positive.");
         }

@@ -65,7 +65,6 @@ public final class UserAccount {
     }
 
     public boolean hasPosition(int eventId) {
-        requirePositiveEventId(eventId);
         return positionsByEventId.containsKey(eventId);
     }
 
@@ -103,8 +102,6 @@ public final class UserAccount {
             long quantity,
             double paidAmount,
             double commissionPaid) {
-        requirePositiveEventId(eventId);
-
         MarketPosition position = positionsByEventId.get(eventId);
         if (position == null) {
             MarketPosition newPosition = new MarketPosition(eventId);
@@ -210,7 +207,6 @@ public final class UserAccount {
     }
 
     private MarketPosition getPosition(int eventId) {
-        requirePositiveEventId(eventId);
         return positionsByEventId.get(eventId);
     }
 
@@ -221,12 +217,6 @@ public final class UserAccount {
                     "Cannot record commission without an existing market position.");
         }
         return position;
-    }
-
-    private static void requirePositiveEventId(int eventId) {
-        if (eventId < 1) {
-            throw new IllegalArgumentException("Event id must be positive.");
-        }
     }
 
     private static void requirePositiveOptionNumber(int optionNumber) {
