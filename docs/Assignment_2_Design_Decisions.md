@@ -562,3 +562,23 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: Removed only event-id positivity validation and added boundary coverage across positions, accounts, users, immutable transaction values, and the market-system registry. A stale test expectation that treated event id zero as invalid was updated to test the remaining invalid purchase inputs.
 - Test result: Engine compilation passed; Maven ran 211 JUnit 5 tests with 0 failures and 0 errors, including 7 focused identifier-range tests; `EngineSmokeTest` passed with assertions enabled; ConsoleUI compilation passed and its 3 JUnit 5 tests passed. The option-number validation audit and event-id sentinel/index audit passed.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 2 - Subtask 11B.1: Official XML v2 Schema and Fixtures
+
+- Status: Completed. Subtask 11B.2 and all later XML loading work remain unimplemented.
+- Goal: Establish immutable, repository-owned sources for the official Assignment 2 schema and the four instructor-supplied XML fixtures without changing JAXB, loading, validation, or system construction.
+- Resource ownership decision: The byte-identical official schema is stored at `Engine/src/main/resources/GM-EX2-Schema.xsd`, alongside the unchanged Assignment 1 schema, so Maven includes both schemas in the production Engine JAR. The XML examples are test resources only under `Engine/src/test/resources/assignment2/xml`; the original ZIP, extraction directory, and build outputs are not tracked.
+- Fixture classification: `small.xml` and `multiple.xml` are valid v2 examples. `error-2.xml` is schema-valid but business-invalid because `initial-cash=0`. `error-3.xml` is schema-valid but business-invalid because a Market Maker references an event that does not exist. Specific future `ErrorCode` mappings remain implementation decisions rather than fixture metadata.
+- Source-integrity decision: All five repository copies retain their supplied bytes, names, values, indentation, namespaces, schema locations, and line endings. Their source SHA-256 checksums and classifications are recorded in `Engine/src/test/resources/assignment2/README.md`; fixtures must not be edited to make future tests pass.
+- Packaging result: Maven copied both main schemas into `target/classes`. The production Engine JAR contains `GM-EX1-Schema.xsd` and `GM-EX2-Schema.xsd` and contains none of `small.xml`, `multiple.xml`, `error-2.xml`, or `error-3.xml`.
+- Compatibility boundary: No Java production or test code, POM, JAXB binding, loader, version detector, schema-validation implementation, factory, Order Book, ConsoleUI, JavaFX, XSD v1, or generated fixture was changed. Subtask 11B.2 remains responsible for schema-validation tests and derived invalid-schema fixtures.
+- Changed files:
+  - `Engine/src/main/resources/GM-EX2-Schema.xsd`
+  - `Engine/src/test/resources/assignment2/README.md`
+  - `Engine/src/test/resources/assignment2/xml/valid/small.xml`
+  - `Engine/src/test/resources/assignment2/xml/valid/multiple.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-business-rules/error-2.xml`
+  - `Engine/src/test/resources/assignment2/xml/invalid-business-rules/error-3.xml`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: The official XSD compiled successfully as an XML Schema, and all four supplied XML files validated successfully against it. Engine `clean package` passed with 211 JUnit 5 tests, `EngineSmokeTest` passed with assertions enabled, and ConsoleUI compilation and all 3 ConsoleUI JUnit tests passed.
+- Commit ID: Recorded in the final run summary after commit creation.
