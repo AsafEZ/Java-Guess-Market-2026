@@ -788,3 +788,27 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Changed files: six Order Book DTO/mapper files, `TradingMechanismDetails`, `MarketEventDtoMapper`, `UserDtoMapper`, `GuessMarketEngine`, `GuessMarketEngineImpl`, API/DTO tests, and this decision log.
 - Validation result: Focused Order Book and compatibility API suites passed. The complete Engine suite ran 327 tests with 0 failures and 0 errors, including production loading of the official v2 fixture followed by Order Book projection. `EngineSmokeTest` passed with assertions enabled. ConsoleUI and JavaFXUI each compiled and ran all 3 tests successfully; the public-boundary, dependency, scope, and whitespace audits passed.
 - Commit ID: Recorded in the final run summary after commit creation.
+
+## Stage 14B.2: JavaFX Engine Workflow Integration
+
+- Status: Completed. Final delivery packaging remains a separate milestone.
+- Goal: Connect the existing FXML shell to one production `GuessMarketEngine` instance and expose the required Assignment 2 load, browse, lifecycle, LMSR, and Order Book workflows without moving business rules into the UI.
+- Engine lifecycle decision: `GuessMarketApplication` creates one Engine through `EngineFactory` and injects it into `MainController`, which passes the same interface reference to both included feature controllers. No controller creates an Engine, accesses `MarketSystem`, imports domain classes, or stores a second system state.
+- Loading decision: `MainController` uses an XML-only `FileChooser` and a daemon `Task<LoadResult>`. The required one-second delay and `loadSystem` call run off the JavaFX Application Thread; load controls and indeterminate progress reflect the task state. The successful path and both workspaces update only after Engine accepts the file. A failed load reports the `EngineException` code and message while preserving the previous path and atomically retained Engine data.
+- Events decision: `EventsController` displays immutable Task 2 summaries and details, applies local mechanism/status/commission filters, and renders LMSR option values or Order Book books, metrics, executions, participants, and common event metadata through public DTOs only. Mechanism selection uses the sealed DTO family rather than a concrete trading implementation.
+- Users and actions decision: `UsersController` displays users, account state, market roles, positions, commissions, and history. The Active view includes every non-closed market so a user with no previous position can perform the first valid action; roles distinguish Available, Participant, Market Maker, and both. Actor-scoped open, LMSR purchase, Order Book submission, and close calls use only the public Engine API. Successful mutations refresh both workspaces while preserving still-valid selections; Engine remains the authorization and validation source of truth.
+- Responsive decision: At widths below 800 pixels, each feature `SplitPane` changes from horizontal to vertical master-detail layout. Action forms use wrapping `FlowPane` containers, Order Book metric groups wrap, and event option cards receive a narrow-width tile size that forces vertical stacking. Detail panes were rendered and checked without horizontal scrolling at 680 pixels.
+- Test decision: JavaFX tests retain independent FXML/include/controller injection coverage, exercise background loading of the official `small.xml` fixture and its one-second delay, drive LMSR and Order Book open/trade/close actions through UI controls, and render nonblank Events and Users snapshots at normal and narrow widths. Render artifacts remain under `JavaFXUI/target/visual-validation` and are not source resources.
+- Changed files:
+  - `JavaFXUI/src/main/java/guessmarket/javafx/GuessMarketApplication.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/MainController.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/EventsController.java`
+  - `JavaFXUI/src/main/java/guessmarket/javafx/controller/UsersController.java`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/events-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/view/users-view.fxml`
+  - `JavaFXUI/src/main/resources/guessmarket/javafx/css/application.css`
+  - `JavaFXUI/src/test/java/guessmarket/javafx/JavaFxResourcesTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: JavaFXUI ran 6 JUnit 5 tests with 0 failures and 0 errors, including real Engine data, required workflows, and normal/narrow rendering. Engine ran 327 JUnit 5 tests successfully; `EngineSmokeTest` passed with assertions enabled; ConsoleUI ran all 3 tests successfully. The standalone application launched through `mvn javafx:run` without FXML or startup errors. Dependency, scope, and whitespace audits passed.
+- Implementation result: The application now loads Assignment 1 or Assignment 2 XML through the production Engine, presents live Events and Users data, and executes the required LMSR and Order Book workflows from the selected-user context while preserving legacy APIs and module boundaries.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

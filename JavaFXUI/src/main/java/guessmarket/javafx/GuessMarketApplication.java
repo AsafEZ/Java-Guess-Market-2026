@@ -1,5 +1,7 @@
 package guessmarket.javafx;
 
+import guessmarket.engine.api.EngineFactory;
+import guessmarket.javafx.controller.MainController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -17,7 +19,10 @@ public final class GuessMarketApplication extends Application {
         URL viewUrl = requireResource(MAIN_VIEW);
         URL stylesheetUrl = requireResource(APPLICATION_CSS);
 
-        Parent root = FXMLLoader.load(viewUrl);
+        FXMLLoader loader = new FXMLLoader(viewUrl);
+        Parent root = loader.load();
+        MainController controller = loader.getController();
+        controller.initializeEngine(EngineFactory.createEngine());
         Scene scene = new Scene(root, 900, 600);
         scene.getStylesheets().add(stylesheetUrl.toExternalForm());
 

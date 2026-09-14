@@ -16,6 +16,7 @@
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -85,7 +86,7 @@
                             <VBox spacing="10.0" styleClass="content-section">
                                 <HBox alignment="CENTER_LEFT" spacing="10.0">
                                     <Label styleClass="subsection-title"
-                                           text="Participation and Market Maker events"/>
+                                           text="Markets and participation"/>
                                     <Region HBox.hgrow="ALWAYS"/>
                                     <Label styleClass="filter-label" text="Show"/>
                                     <ComboBox fx:id="participationScopeChoice" prefWidth="110.0">
@@ -164,38 +165,42 @@
                                 <Label styleClass="subsection-title" text="User and market actions"/>
                                 <VBox fx:id="lmsrActionPane" spacing="8.0" styleClass="action-group">
                                     <Label styleClass="action-title" text="LMSR purchase"/>
-                                    <HBox spacing="8.0">
-                                        <ComboBox disable="true" maxWidth="1.7976931348623157E308"
-                                                  promptText="Option" HBox.hgrow="ALWAYS"/>
-                                        <TextField disable="true" promptText="Quantity"/>
-                                        <Button disable="true" mnemonicParsing="false"
+                                    <FlowPane hgap="8.0" vgap="8.0">
+                                        <ComboBox fx:id="lmsrOptionChoice" prefWidth="220.0"
+                                                  promptText="Option"/>
+                                        <TextField fx:id="lmsrQuantityField" prefWidth="140.0"
+                                                   promptText="Quantity"/>
+                                        <Button fx:id="purchaseSharesButton" mnemonicParsing="false"
                                                 text="Purchase shares"/>
-                                    </HBox>
+                                    </FlowPane>
                                 </VBox>
                                 <VBox fx:id="orderBookActionPane" spacing="8.0" styleClass="action-group">
                                     <fx:define>
                                         <ToggleGroup fx:id="orderSideGroup"/>
                                     </fx:define>
                                     <Label styleClass="action-title" text="Order Book order"/>
-                                    <HBox spacing="8.0">
-                                        <ToggleButton disable="true" mnemonicParsing="false"
+                                    <FlowPane hgap="8.0" vgap="8.0">
+                                        <ToggleButton fx:id="orderBuyToggle" mnemonicParsing="false"
                                                       text="Buy" toggleGroup="$orderSideGroup"/>
-                                        <ToggleButton disable="true" mnemonicParsing="false"
+                                        <ToggleButton fx:id="orderSellToggle" mnemonicParsing="false"
                                                       text="Sell" toggleGroup="$orderSideGroup"/>
-                                        <ComboBox disable="true" promptText="Option"/>
-                                        <TextField disable="true" promptText="Quantity"/>
-                                        <TextField disable="true" promptText="Price per share"/>
-                                        <Button disable="true" mnemonicParsing="false" text="Submit order"/>
-                                    </HBox>
+                                        <ComboBox fx:id="orderOptionChoice" prefWidth="180.0"
+                                                  promptText="Option"/>
+                                        <TextField fx:id="orderQuantityField" prefWidth="120.0"
+                                                   promptText="Quantity"/>
+                                        <TextField fx:id="orderPriceField" prefWidth="150.0"
+                                                   promptText="Price per share"/>
+                                        <Button fx:id="submitOrderButton" mnemonicParsing="false" text="Submit order"/>
+                                    </FlowPane>
                                 </VBox>
                                 <VBox fx:id="marketMakerActionPane" spacing="8.0" styleClass="action-group">
                                     <Label styleClass="action-title" text="Market Maker actions"/>
-                                    <HBox spacing="8.0">
-                                        <Button disable="true" mnemonicParsing="false" text="Open event"/>
-                                        <ComboBox disable="true" maxWidth="1.7976931348623157E308"
-                                                  promptText="Winning option" HBox.hgrow="ALWAYS"/>
-                                        <Button disable="true" mnemonicParsing="false" text="Close event"/>
-                                    </HBox>
+                                    <FlowPane hgap="8.0" vgap="8.0">
+                                        <Button fx:id="openEventButton" mnemonicParsing="false" text="Open event"/>
+                                        <ComboBox fx:id="winningOptionChoice" prefWidth="220.0"
+                                                  promptText="Winning option"/>
+                                        <Button fx:id="closeEventButton" mnemonicParsing="false" text="Close event"/>
+                                    </FlowPane>
                                 </VBox>
                                 <Label fx:id="actionFeedbackLabel" maxWidth="1.7976931348623157E308"
                                        styleClass="feedback-label" text="" wrapText="true"/>

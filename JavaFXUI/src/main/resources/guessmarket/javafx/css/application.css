@@ -41,6 +41,16 @@
     -fx-text-fill: #29434e;
 }
 
+.feedback-success {
+    -fx-background-color: #e8f4ed;
+    -fx-text-fill: #1d6b45;
+}
+
+.feedback-error {
+    -fx-background-color: #fbeaec;
+    -fx-text-fill: #9b2635;
+}
+
 .progress-bar > .bar {
     -fx-background-color: #176b87;
 }
@@ -161,6 +171,22 @@
     -fx-border-color: #cbd6de;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
+    -fx-padding: 12px;
+}
+
+.market-metrics {
+    -fx-alignment: center-left;
+}
+
+.metric-name {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #687887;
+}
+
+.metric-value {
+    -fx-font-weight: bold;
+    -fx-text-fill: #17202a;
 }
 
 .status-badge {
