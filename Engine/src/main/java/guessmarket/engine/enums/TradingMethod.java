@@ -1,5 +1,6 @@
 package guessmarket.engine.enums;
 
 public enum TradingMethod {
-    LMSR
+    LMSR,
+    ORDER_BOOK
 }

@@ -20,10 +20,7 @@ import guessmarket.engine.dto.UserPurchaseResult;
 import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
-import guessmarket.engine.loading.MarketDefinition;
-import guessmarket.engine.loading.MarketDefinitionValidator;
-import guessmarket.engine.loading.MarketSystemFactory;
-import guessmarket.engine.loading.XmlMarketLoader;
+import guessmarket.engine.loading.MarketSystemXmlLoader;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,9 +30,7 @@ import java.util.Objects;
 
 public final class GuessMarketEngineImpl implements GuessMarketEngine {
     private final LmsrCalculator calculator = new LmsrCalculator();
-    private final XmlMarketLoader loader = new XmlMarketLoader();
-    private final MarketDefinitionValidator validator = new MarketDefinitionValidator();
-    private final MarketSystemFactory systemFactory = new MarketSystemFactory(calculator);
+    private final MarketSystemXmlLoader loader = new MarketSystemXmlLoader(calculator);
     private MarketSystem currentSystem;
 
     public GuessMarketEngineImpl() {
@@ -50,15 +45,13 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
         validatePath(xmlPath);
 
         // Atomic load: currentSystem is changed only after every step succeeds.
-        MarketDefinition definition = loader.load(xmlPath);
-        validator.validate(definition);
-        MarketSystem candidate = systemFactory.create(definition);
-        currentSystem = candidate;
+        MarketSystemXmlLoader.LoadedSystem loaded = loader.load(xmlPath);
+        currentSystem = loaded.system();
 
         return new LoadResult(
                 xmlPath.toAbsolutePath().normalize(),
-                candidate.size(),
-                candidate.totalInitialSubsidy());
+                loaded.system().size(),
+                loaded.totalInitialSubsidy());
     }
 
     @Override

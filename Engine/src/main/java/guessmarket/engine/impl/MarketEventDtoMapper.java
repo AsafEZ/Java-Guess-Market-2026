@@ -12,6 +12,8 @@ import guessmarket.engine.dto.OptionSummary;
 import guessmarket.engine.dto.PositionDetails;
 import guessmarket.engine.dto.TradeDetails;
 import guessmarket.engine.dto.TradingMechanismDetails;
+import guessmarket.engine.exception.EngineException;
+import guessmarket.engine.exception.ErrorCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +73,9 @@ final class MarketEventDtoMapper {
     private static TradingMechanismDetails toMechanismDetails(MarketEvent event) {
         return switch (event.getTradingMethod()) {
             case LMSR -> toLmsrDetails(event);
+            case ORDER_BOOK -> throw new EngineException(
+                    ErrorCode.WRONG_TRADING_METHOD,
+                    "Order Book details are not exposed by the Engine API yet.");
         };
     }
 
