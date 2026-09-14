@@ -1,0 +1,241 @@
+.app-root {
+    -fx-background-color: #f4f6f8;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+}
+
+.application-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #cbd3dc transparent;
+}
+
+.app-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17202a;
+}
+
+.primary-button {
+    -fx-background-color: #176b87;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 14px;
+}
+
+.primary-button:hover {
+    -fx-background-color: #0f5972;
+}
+
+.path-field {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #cbd3dc;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.feedback-label {
+    -fx-padding: 8px 10px;
+    -fx-background-color: #eef4f7;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #29434e;
+}
+
+.feedback-success {
+    -fx-background-color: #e8f4ed;
+    -fx-text-fill: #1d6b45;
+}
+
+.feedback-error {
+    -fx-background-color: #fbeaec;
+    -fx-text-fill: #9b2635;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: #176b87;
+}
+
+.workspace-tabs > .tab-header-area {
+    -fx-padding: 6px 12px 0 12px;
+}
+
+.workspace-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #e8edf2;
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-padding: 7px 20px;
+}
+
+.workspace-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #ffffff;
+}
+
+.workspace-split-pane {
+    -fx-background-color: #d9e0e7;
+    -fx-padding: 0;
+}
+
+.workspace-split-pane > .split-pane-divider {
+    -fx-background-color: #c7d0d9;
+    -fx-padding: 0 1px;
+}
+
+.master-pane,
+.detail-state-stack {
+    -fx-background-color: #ffffff;
+}
+
+.section-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17202a;
+}
+
+.detail-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17202a;
+}
+
+.subsection-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #263746;
+}
+
+.option-title,
+.action-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: #263746;
+}
+
+.body-text {
+    -fx-text-fill: #34495e;
+}
+
+.muted-text {
+    -fx-text-fill: #687887;
+}
+
+.empty-state {
+    -fx-background-color: #f8fafc;
+    -fx-padding: 24px;
+}
+
+.empty-state-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+.filter-panel {
+    -fx-background-color: #f6f8fa;
+    -fx-border-color: #d8e0e7;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 10px;
+}
+
+.filter-label,
+.metadata-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #566573;
+}
+
+.filter-toggle {
+    -fx-background-color: #e7edf2;
+    -fx-background-radius: 4px;
+    -fx-padding: 5px 9px;
+}
+
+.filter-toggle:selected {
+    -fx-background-color: #176b87;
+    -fx-text-fill: #ffffff;
+}
+
+.detail-pane {
+    -fx-background-color: #f8fafc;
+}
+
+.metadata-grid,
+.content-section,
+.action-group {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0e7;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 12px;
+}
+
+.option-area {
+    -fx-background-color: #f1f5f7;
+    -fx-border-color: #cbd6de;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 12px;
+}
+
+.market-metrics {
+    -fx-alignment: center-left;
+}
+
+.metric-name {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #687887;
+}
+
+.metric-value {
+    -fx-font-weight: bold;
+    -fx-text-fill: #17202a;
+}
+
+.status-badge {
+    -fx-background-color: #f0c96b;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #3d3217;
+    -fx-font-weight: bold;
+    -fx-padding: 5px 9px;
+}
+
+.account-balance {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d6b45;
+}
+
+.table-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d9e0;
+    -fx-border-radius: 3px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #e9eef2;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent #d1d9e0 #d1d9e0 transparent;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #cfe8f2;
+    -fx-text-background-color: #17202a;
+}
+
+.button {
+    -fx-background-radius: 4px;
+}
+
+.button:disabled,
+.toggle-button:disabled,
+.combo-box:disabled,
+.text-field:disabled {
+    -fx-opacity: 0.58;
+}
+
+.scroll-pane,
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}

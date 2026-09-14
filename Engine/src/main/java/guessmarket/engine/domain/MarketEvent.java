@@ -1,10 +1,15 @@
 package guessmarket.engine.domain;
 
-import guessmarket.engine.calculation.LmsrCalculator;
+import guessmarket.engine.enums.TradingMethod;
+import guessmarket.engine.trading.TradingMechanism;
+import guessmarket.engine.trading.WinningPayoutOperations;
+import guessmarket.engine.trading.lmsr.LmsrTradingOperations;
+import guessmarket.engine.trading.orderbook.OrderBookTradingOperations;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +21,13 @@ public final class MarketEvent {
     private final String description;
     private final List<MarketOption> options;
     private final CommissionPolicy commissionPolicy;
-    private final int b;
     private final EventAccount account;
     private final List<Trade> trades = new ArrayList<>();
-    private EventStatus status = EventStatus.ACTIVE;
+    private EventStatus status;
     private Integer winningOptionNumber;
     private long nextTradeNumber = 1;
+    private final TradingMechanism tradingMechanism;
+    private String marketMakerName;
 
     public MarketEvent(
             int id,
@@ -29,8 +35,49 @@ public final class MarketEvent {
             String description,
             List<MarketOption> options,
             CommissionPolicy commissionPolicy,
-            int b,
+            TradingMechanism tradingMechanism,
             double initialSubsidy) {
+        this(
+                id,
+                name,
+                description,
+                options,
+                commissionPolicy,
+                tradingMechanism,
+                initialSubsidy,
+                EventStatus.ACTIVE);
+    }
+
+    public static MarketEvent createNotStartedEvent(
+            int id,
+            String name,
+            String description,
+            List<MarketOption> options,
+            CommissionPolicy commissionPolicy,
+            TradingMechanism tradingMechanism) {
+        return new MarketEvent(
+                id,
+                name,
+                description,
+                options,
+                commissionPolicy,
+                tradingMechanism,
+                0.0,
+                EventStatus.NOT_STARTED);
+    }
+
+    private MarketEvent(
+            int id,
+            String name,
+            String description,
+            List<MarketOption> options,
+            CommissionPolicy commissionPolicy,
+            TradingMechanism tradingMechanism,
+            double initialAccountBalance,
+            EventStatus initialStatus) {
+        this.tradingMechanism =
+                Objects.requireNonNull(tradingMechanism, "tradingMechanism");
+        Objects.requireNonNull(options, "options");
         if (options.size() != 2) {
             throw new IllegalArgumentException("Exercise 1 requires exactly two options.");
         }
@@ -39,45 +86,112 @@ public final class MarketEvent {
         this.description = Objects.requireNonNull(description, "description");
         this.options = List.copyOf(options);
         this.commissionPolicy = Objects.requireNonNull(commissionPolicy, "commissionPolicy");
-        this.b = b;
-        this.account = new EventAccount(initialSubsidy);
+        this.account = new EventAccount(initialAccountBalance);
+        this.status = Objects.requireNonNull(initialStatus, "initialStatus");
     }
 
-    public PurchaseOutcome purchase(int optionNumber, long quantity, LmsrCalculator calculator) {
+    public PurchaseOutcome purchase(
+            int optionNumber,
+            long quantity) {
+        PurchaseQuote quote = quotePurchase(optionNumber, quantity);
+        MarketOption selected = findOption(quote.optionNumber());
+        selected.validateAddShares(quote.quantity());
+        account.validatePurchase(quote.shareCost(), quote.commission());
+
+        selected.applyValidatedAddShares(quote.quantity());
+        account.recordPurchase(quote.shareCost(), quote.commission());
+
+        trades.add(new Trade(
+                nextTradeNumber++,
+                quote.optionNumber(),
+                selected.getName(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge()
+        ));
+
+        return new PurchaseOutcome(
+                quote.optionNumber(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge()
+        );
+    }
+
+    PurchaseQuote quotePurchase(int optionNumber, long quantity) {
         requireActive();
         if (quantity <= 0) {
             throw new EngineException(
                     ErrorCode.INVALID_SHARE_QUANTITY,
-                    "Share quantity must be a positive whole number.");
+                    "Share quantity must be a positive whole number."
+            );
         }
 
-        MarketOption selected = findOption(optionNumber);
-        int optionIndex = selected.getOptionNumber() - 1;
-        long firstShares = options.get(0).getPurchasedShares();
-        long secondShares = options.get(1).getPurchasedShares();
-
-        final double shareCost;
-        try {
-            shareCost = calculator.purchaseCost(
-                    b, firstShares, secondShares, optionIndex, quantity);
-            selected.addShares(quantity);
-        } catch (ArithmeticException ex) {
-            throw new EngineException(
-                    ErrorCode.ARITHMETIC_OVERFLOW,
-                    "The requested purchase is too large.",
-                    ex);
-        }
-
+        findOption(optionNumber);
+        double shareCost = requireLmsrOperations().calculatePurchaseCost(
+                options,
+                optionNumber,
+                quantity);
         double commission = commissionPolicy.type() == CommissionType.ON_PURCHASE
                 ? commissionPolicy.calculate(shareCost)
                 : 0.0;
-        double totalPaid = shareCost + commission;
-        account.recordPurchase(shareCost, commission);
-        trades.add(new Trade(
-                nextTradeNumber++, optionNumber, selected.getName(), quantity,
-                shareCost, commission, totalPaid));
+        PurchaseQuote quote = PurchaseQuote.create(
+                id,
+                optionNumber,
+                quantity,
+                shareCost,
+                commission);
+        return quote;
+    }
 
-        return new PurchaseOutcome(optionNumber, quantity, shareCost, commission, totalPaid);
+    PreparedPurchase prepareUserPurchase(PurchaseQuote quote, String buyerName) {
+        requireActive();
+        Objects.requireNonNull(quote, "quote");
+        if (quote.eventId() != id) {
+            throw new IllegalArgumentException("Purchase quote belongs to a different event.");
+        }
+
+        MarketOption selected = findOption(quote.optionNumber());
+        selected.validateAddShares(quote.quantity());
+        account.validateShareCostCredit(quote.shareCost());
+
+        long followingTradeNumber;
+        try {
+            followingTradeNumber = Math.incrementExact(nextTradeNumber);
+        } catch (ArithmeticException exception) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "The event trade number exceeds the supported range.",
+                    exception);
+        }
+
+        Trade trade = new Trade(
+                nextTradeNumber,
+                quote.optionNumber(),
+                selected.getName(),
+                quote.quantity(),
+                quote.shareCost(),
+                quote.commission(),
+                quote.totalCharge(),
+                buyerName);
+        return new PreparedPurchase(selected, quote, trade, followingTradeNumber);
+    }
+
+    PurchaseOutcome applyPreparedUserPurchase(PreparedPurchase preparedPurchase) {
+        preparedPurchase.selectedOption.applyValidatedAddShares(
+                preparedPurchase.quote.quantity());
+        account.applyValidatedShareCostCredit(preparedPurchase.quote.shareCost());
+        trades.add(preparedPurchase.trade);
+        nextTradeNumber = preparedPurchase.followingTradeNumber;
+
+        return new PurchaseOutcome(
+                preparedPurchase.quote.optionNumber(),
+                preparedPurchase.quote.quantity(),
+                preparedPurchase.quote.shareCost(),
+                preparedPurchase.quote.commission(),
+                preparedPurchase.quote.totalCharge());
     }
 
     public CloseOutcome close(int optionNumber) {
@@ -106,13 +220,42 @@ public final class MarketEvent {
         return options.get(optionNumber - 1);
     }
 
-    private void requireActive() {
+    public double getLmsrOptionValue(int optionNumber) {
+        findOption(optionNumber);
+
+        return requireLmsrOperations()
+                .calculateOptionValue(
+                        options,
+                        optionNumber
+                );
+    }
+
+    void requireActive() {
+        if (status == EventStatus.NOT_STARTED) {
+            throw new EngineException(
+                    ErrorCode.EVENT_NOT_STARTED,
+                    "Event " + id + " has not started.");
+        }
         if (status == EventStatus.CLOSED) {
             throw new EngineException(
                     ErrorCode.EVENT_ALREADY_CLOSED,
                     "Event " + id + " is already closed.");
         }
     }
+
+    private LmsrTradingOperations requireLmsrOperations() {
+        if (tradingMechanism instanceof LmsrTradingOperations lmsrOperations) {
+
+            return lmsrOperations;
+        }
+
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not use LMSR."
+        );
+    }
+
+
 
     public int getId() {
         return id;
@@ -135,7 +278,112 @@ public final class MarketEvent {
     }
 
     public int getB() {
-        return b;
+        return requireLmsrOperations().getB();
+    }
+
+    OrderBookTradingOperations requireOrderBookOperations() {
+        if (tradingMechanism instanceof OrderBookTradingOperations orderBookOperations) {
+            return orderBookOperations;
+        }
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not use an Order Book.");
+    }
+
+    public double getRequiredInitialSubsidy() {
+        return requireLmsrOperations().calculateInitialSubsidy();
+    }
+
+    double getPayoutPerWinningShare() {
+        if (tradingMechanism instanceof WinningPayoutOperations payoutOperations) {
+            return payoutOperations.getPayoutPerWinningShare();
+        }
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not expose winning-share payout semantics.");
+    }
+
+    void requireCanOpen() {
+        if (status == EventStatus.ACTIVE) {
+            throw new EngineException(
+                    ErrorCode.EVENT_ALREADY_STARTED,
+                    "Event " + id + " is already active.");
+        }
+        if (status == EventStatus.CLOSED) {
+            throw new EngineException(
+                    ErrorCode.EVENT_ALREADY_CLOSED,
+                    "Event " + id + " is already closed.");
+        }
+    }
+
+    void validateSettlementClose(int optionNumber) {
+        requireActive();
+        findOption(optionNumber);
+        if (winningOptionNumber != null) {
+            throw new EngineException(
+                    ErrorCode.SETTLEMENT_STATE_MISMATCH,
+                    "The event already has a winning option.");
+        }
+    }
+
+    void applyValidatedSettlementClose(int optionNumber) {
+        winningOptionNumber = optionNumber;
+        status = EventStatus.CLOSED;
+    }
+
+    void validateInitialFundingCapacity(double amount) {
+        requireCanOpen();
+        account.validateCredit(amount);
+    }
+
+    void openWithFunding(double amount) {
+        requireCanOpen();
+        double requiredSubsidy = getRequiredInitialSubsidy();
+        if (Double.compare(amount, requiredSubsidy) != 0) {
+            throw new IllegalStateException(
+                    "Initial funding no longer matches the required LMSR subsidy.");
+        }
+
+        account.credit(amount);
+        status = EventStatus.ACTIVE;
+    }
+
+    void validateOrderBookOpening(double initialInvestment, long pairQuantity) {
+        requireCanOpen();
+        OrderBookTradingOperations orderBook = requireOrderBookOperations();
+        if (Double.compare(initialInvestment, orderBook.getInitialInvestment()) != 0) {
+            throw new EngineException(
+                    ErrorCode.ORDER_BOOK_STATE_MISMATCH,
+                    "Initial funding no longer matches the Order Book configuration.");
+        }
+        if (pairQuantity < 0L
+                || pairQuantity != orderBook.getInitialInvestment() / orderBook.getD()) {
+            throw new EngineException(
+                    ErrorCode.ORDER_BOOK_STATE_MISMATCH,
+                    "Initial inventory no longer matches the Order Book configuration.");
+        }
+        if (initialInvestment > 0.0) {
+            account.validateCredit(initialInvestment);
+        }
+        if (pairQuantity > 0L) {
+            for (MarketOption option : options) {
+                option.validateAddShares(pairQuantity);
+            }
+        }
+    }
+
+    void applyValidatedOrderBookOpening(
+            double initialInvestment,
+            long pairQuantity) {
+        if (initialInvestment > 0.0) {
+            account.credit(initialInvestment);
+        }
+        if (pairQuantity > 0L) {
+            for (MarketOption option : options) {
+                option.applyValidatedAddShares(pairQuantity);
+            }
+        }
+        status = EventStatus.ACTIVE;
     }
 
     public EventAccount getAccount() {
@@ -153,4 +401,62 @@ public final class MarketEvent {
     public Integer getWinningOptionNumber() {
         return winningOptionNumber;
     }
+
+    public boolean hasMarketMaker() {
+        return marketMakerName != null;
+    }
+
+    void assignMarketMaker(String userName) {
+        if (hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_ALREADY_ASSIGNED,
+                    "Event " + id + " already has a Market Maker.");
+        }
+        marketMakerName = normalizeUserName(userName);
+    }
+
+    public String getMarketMakerName() {
+        if (!hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + id + " does not have a Market Maker.");
+        }
+        return marketMakerName;
+    }
+
+    public boolean isMarketMaker(String userName) {
+        return normalizeUserName(userName).equals(marketMakerName);
+    }
+
+    private static String normalizeUserName(String userName) {
+        String normalizedName = Objects.requireNonNull(userName, "userName").trim();
+        if (normalizedName.isEmpty()) {
+            throw new IllegalArgumentException("User name cannot be blank.");
+        }
+        return normalizedName;
+    }
+
+    public TradingMechanism getTradingMechanism() {return tradingMechanism;}
+
+    public TradingMethod getTradingMethod() {return tradingMechanism.getTradingMethod();}
+
+
+    static final class PreparedPurchase {
+        private final MarketOption selectedOption;
+        private final PurchaseQuote quote;
+        private final Trade trade;
+        private final long followingTradeNumber;
+
+        private PreparedPurchase(
+                MarketOption selectedOption,
+                PurchaseQuote quote,
+                Trade trade,
+                long followingTradeNumber) {
+            this.selectedOption = selectedOption;
+            this.quote = quote;
+            this.trade = trade;
+            this.followingTradeNumber = followingTradeNumber;
+        }
+    }
+
 }
