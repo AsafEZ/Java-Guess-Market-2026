@@ -14,6 +14,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TabPane;
@@ -133,6 +134,35 @@ class JavaFxResourcesTest {
             assertEquals(3, field(view.usersController(), "userTable", TableView.class)
                     .getItems().size());
             assertFalse(field(view.mainController(), "loadFileButton", Button.class).isDisabled());
+            return null;
+        });
+    }
+
+    @Test
+    void failedBackgroundReloadPreservesTheLastSuccessfulWorkspace() throws Exception {
+        GuessMarketEngine engine = EngineFactory.createEngine();
+        Path valid = assignment2Fixture("valid", "small.xml");
+        Path invalid = assignment2Fixture("invalid-business-rules", "error-2.xml");
+        LoadedView view = runOnJavaFxThread(() -> loadMainView(engine));
+
+        startBackgroundLoad(view, valid);
+        waitUntil(() -> runOnJavaFxThread(() -> field(
+                view.mainController(), "loadedFilePathField", TextField.class)
+                .getText().equals(valid.toString())));
+        startBackgroundLoad(view, invalid);
+        waitUntil(() -> runOnJavaFxThread(() -> field(
+                view.mainController(), "globalFeedbackLabel", Label.class)
+                .getText().startsWith("Load failed:")));
+
+        runOnJavaFxThread(() -> {
+            assertEquals(valid.toString(), field(
+                    view.mainController(), "loadedFilePathField", TextField.class).getText());
+            assertEquals(2, field(view.eventsController(), "eventTable", TableView.class)
+                    .getItems().size());
+            assertEquals(3, field(view.usersController(), "userTable", TableView.class)
+                    .getItems().size());
+            assertEquals(2, engine.getAllMarketEvents().size());
+            assertEquals(3, engine.getAllUsers().size());
             return null;
         });
     }
@@ -293,15 +323,28 @@ class JavaFxResourcesTest {
     }
 
     private static Path assignment2Fixture(String fileName) {
+        return assignment2Fixture("valid", fileName);
+    }
+
+    private static Path assignment2Fixture(String category, String fileName) {
         Path fromModule = Path.of(
                 "..", "Engine", "src", "test", "resources",
-                "assignment2", "xml", "valid", fileName).toAbsolutePath().normalize();
+                "assignment2", "xml", category, fileName).toAbsolutePath().normalize();
         Path fromRepository = Path.of(
                 "Engine", "src", "test", "resources",
-                "assignment2", "xml", "valid", fileName).toAbsolutePath().normalize();
+                "assignment2", "xml", category, fileName).toAbsolutePath().normalize();
         Path fixture = Files.exists(fromModule) ? fromModule : fromRepository;
         assertTrue(Files.exists(fixture), () -> "Missing Assignment 2 fixture: " + fixture);
         return fixture;
+    }
+
+    private static void startBackgroundLoad(LoadedView view, Path path) throws Exception {
+        runOnJavaFxThread(() -> {
+            Method loadXml = MainController.class.getDeclaredMethod("loadXml", java.io.File.class);
+            loadXml.setAccessible(true);
+            loadXml.invoke(view.mainController(), path.toFile());
+            return null;
+        });
     }
 
     private static <T> T field(Object owner, String name, Class<T> type)

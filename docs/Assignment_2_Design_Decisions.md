@@ -812,3 +812,18 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: JavaFXUI ran 6 JUnit 5 tests with 0 failures and 0 errors, including real Engine data, required workflows, and normal/narrow rendering. Engine ran 327 JUnit 5 tests successfully; `EngineSmokeTest` passed with assertions enabled; ConsoleUI ran all 3 tests successfully. The standalone application launched through `mvn javafx:run` without FXML or startup errors. Dependency, scope, and whitespace audits passed.
 - Implementation result: The application now loads Assignment 1 or Assignment 2 XML through the production Engine, presents live Events and Users data, and executes the required LMSR and Order Book workflows from the selected-user context while preserving legacy APIs and module boundaries.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 2 Delivery Validation
+
+- Status: Completed.
+- Goal: Validate the full submission path and provide reproducible build, test, packaging, and JavaFX launch instructions without introducing an undocumented native packaging format.
+- Coverage decision: Existing focused Engine suites remain the source of truth for v1 compatibility, `small.xml`, `multiple.xml`, MM assignment, LMSR settlement, Order Book unmatched/full/partial/mint flows, book statistics, settlement, instructor business errors, schema errors, and atomic reload. JavaFX integration adds real `small.xml` loading, UI-driven LMSR and Order Book workflows, and a failed `error-2.xml` reload that preserves the last successful path, event list, user list, and Engine system.
+- Packaging decision: The assignment does not prescribe `jlink`, `jpackage`, a fat JAR, or an installer. Each Maven module therefore produces its normal JAR, and JavaFX is launched through `javafx-maven-plugin`, which supplies its runtime dependencies. No absolute SDK path, root aggregator, or platform-specific packaged binary was added.
+- Documentation decision: The root `README.md` now states JDK/Maven requirements, module ownership, dependency-order build commands, artifact locations, JavaFX launch steps, XML selection behavior, and the assertion-enabled Engine smoke-test command.
+- Validation result: Engine `clean install` produced `Engine-1.0-SNAPSHOT.jar` and ran 327 tests with 0 failures and 0 errors. `EngineSmokeTest` passed with assertions enabled. ConsoleUI `clean package` produced `consoleUI-1.0-SNAPSHOT.jar` and ran 3 tests successfully. JavaFXUI `clean package` produced `JavaFXUI-1.0-SNAPSHOT.jar` and ran 7 tests successfully. The application launched through `mvn javafx:run`; normal and narrow Events/Users renders were nonblank, option cards stacked at narrow width, and detail panes required no horizontal scrolling.
+- Changed files:
+  - `README.md`
+  - `JavaFXUI/src/test/java/guessmarket/javafx/JavaFxResourcesTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Implementation result: The repository has repeatable Maven build and launch instructions, delivery JARs for all three modules, and automated acceptance coverage for successful and failed JavaFX loading while retaining all existing focused Engine tests.
+- Commit ID: This delivery commit; the hash is reported in the completion summary.
