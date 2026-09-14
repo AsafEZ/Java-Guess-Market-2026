@@ -651,6 +651,32 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The focused Assignment 2 unmarshaller suite ran 20 tests with 0 failures and 0 errors. A clean Engine build regenerated all 13 v2 bindings and ran 260 tests with 0 failures and 0 errors; `EngineSmokeTest` passed with assertions enabled. ConsoleUI compiled and ran all 3 tests successfully, and JavaFXUI compiled and ran all 3 tests successfully. The Engine JAR contains both official schemas and the compiled v2 JAXB classes, while Assignment 2 XML test fixtures are excluded. Security, unchanged-loader, no-fallback, generated-source, scope, and whitespace audits passed.
 - Commit ID: Recorded in the final run summary after commit creation.
 
+## Stage 2 - Subtask 11B.5A: Immutable Assignment 2 Definitions
+
+- Status: Completed. Business validation, domain construction, version-based production loading, and Order Book behavior remain deferred.
+- Goal: Convert the mutable, schema-generated JAXB v2 graph into a stable immutable loading model before any Assignment 2 business rules or domain objects are applied.
+- Layering decision: The flow is `XML v2 -> XSD validation -> JAXB v2 -> immutable Assignment 2 definitions`. The definitions and mapper remain package-private in `guessmarket.engine.loading`; no generated JAXB type is exposed through the Engine API or retained by a definition.
+- Root and ownership model: `Assignment2Definition` owns ordered snapshots of `UserDefinition` and `Assignment2EventDefinition`. Each user carries its source name, `initialCash`, and ordered Market Maker event references. Each event carries its full `int` identifier, source text, commission, ordered option definitions, and exactly one typed mechanism definition.
+- Mechanism decision: Sealed `TradingMechanismDefinition` has distinct `LmsrDefinition` and `OrderBookDefinition` implementations. LMSR stores `b`; Order Book stores `allowMint`, `initial`, and `d`. This models the XSD `xs:choice` directly without extending the existing LMSR-only `TradingMethod`, adding nullable cross-mechanism fields, casting to trading implementations, or implementing Order Book behavior.
+- Commission decision: `CommissionDefinition` stores the existing `CommissionType` and the schema `int` percentage. The mapper accepts the two exact XSD lexical values without trimming or case normalization. Unexpected choice or enumeration state is reported as the existing `XML_PARSE_ERROR`, rather than falling back to Assignment 1 or leaking a null-pointer failure.
+- Snapshot decision: Every list is copied with `List.copyOf`; records contain only immutable values, lists, enums, or sealed value definitions. Mapping preserves user, event, option, and Market Maker reference order. Subsequent changes to JAXB live lists or properties cannot alter an existing definition snapshot, and the stateless mapper retains no state between calls.
+- Validation boundary: Text is copied without trimming or canonicalization, and all XSD-valid numeric values remain unchanged, including zero, negative values, and `Integer.MIN_VALUE`/`Integer.MAX_VALUE` event IDs. The mapper intentionally accepts schema-valid business-invalid fixtures such as non-positive initial cash and an MM reference to a missing event. Name validity and uniqueness, event uniqueness, option rules, positive LMSR/Order Book parameters, MM reference integrity, and exactly-one-MM rules belong to 11B.5B.
+- Changed files:
+  - `Engine/src/main/java/guessmarket/engine/loading/Assignment2Definition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/UserDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/Assignment2EventDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/OptionDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/CommissionDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/TradingMechanismDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/LmsrDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/OrderBookDefinition.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/Assignment2JaxbDefinitionMapper.java`
+  - `Engine/src/test/java/guessmarket/engine/loading/Assignment2JaxbDefinitionMapperTest.java`
+  - `Engine/target/classes/GM-EX1-Schema.xsd` (removed from Git as an ignored generated duplicate; the source resource is unchanged)
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: The focused mapper suite ran 13 tests with 0 failures and 0 errors. A clean Engine build regenerated all 13 JAXB v2 sources, and the final complete Engine suite ran 273 tests with 0 failures and 0 errors; `EngineSmokeTest` passed with assertions enabled. ConsoleUI and JavaFXUI each compiled and ran all 3 tests successfully. The mapper purity, snapshot, ordering, choice, business-validation boundary, unchanged v1 loading, loading-package dependency, generated-source, and scope audits passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
 ## Stage 14A: JavaFX UI Module Foundation
 
 - Status: Completed. Full Events and Users screens, Engine integration, XML file selection, Order Book UI, and final packaging remain deferred to later Stage 14 work.
