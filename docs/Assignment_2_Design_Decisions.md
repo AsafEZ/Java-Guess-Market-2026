@@ -630,6 +630,27 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The focused detector suite ran 15 tests with 0 failures and 0 errors. The complete Engine suite ran 240 tests with 0 failures and 0 errors, and `EngineSmokeTest` passed with assertions enabled. ConsoleUI compiled and ran all 3 JUnit 5 tests successfully. JavaFXUI compiled and ran all 3 JUnit 5 tests successfully. The security, no-fallback, unchanged-loader, scope, and whitespace audits passed.
 - Commit ID: Recorded in the final run summary after commit creation.
 
+## Stage 2 - Subtask 11B.4: JAXB v2 Bindings and Secure Unmarshalling
+
+- Status: Completed. The v2 unmarshaller is intentionally not connected to `loadSystem`; version-based production routing, v2 business validation, domain construction, and Order Book behavior remain deferred.
+- Goal: Generate a separate JAXB model from the official Assignment 2 schema and provide a schema-validating, secure, stateless unmarshal path without changing the existing Assignment 1 JAXB flow.
+- Existing-binding audit: The committed Assignment 1 JAXB sources were generated with Eclipse JAXB 4.0.5 and remain unchanged. No XJC Maven execution previously existed, so Assignment 2 generation was added independently rather than altering or regenerating v1.
+- Generation decision: `jaxb2-maven-plugin` 4.1.0 runs during `generate-sources` for `GM-EX2-Schema.xsd` only. Its XJC and JXC dependencies are pinned explicitly to the approved JAXB 4.0.5 release. Generated sources use package `guessmarket.engine.loading.jaxb.v2`, are written only to `target/generated-sources/jaxb-v2`, and are compiled through Maven without being committed or duplicated under `src/main/java`. No binding customization file is needed for the official schema.
+- Generated-model result: A clean generation produces 13 classes: `Commission`, `Event`, `GMEvent`, `GMEvents`, `GMLMSR`, `GMMarketMaker`, `GMMethod`, `GMOptions`, `GMOrderBook`, `GMUser`, `GMUsers`, `GuessMarket`, and `ObjectFactory`.
+- Unmarshal API decision: Package-private `Assignment2XmlUnmarshaller` returns the generated v2 `GuessMarket` root only within the loading package. It uses the existing `INVALID_FILE_PATH`, `FILE_NOT_FOUND`, and `XML_PARSE_ERROR` codes and introduces no public Engine API or domain mapping.
+- Security decision: The official schema is loaded exclusively from the Engine classpath. `SchemaFactory` enables secure processing and disables external DTD and schema access. Every unmarshal call opens and closes its own input stream and secure StAX reader, with DTD support, external entities, entity replacement, and external resource resolution disabled; `DOCTYPE` and entity-reference events are also rejected explicitly. The immutable JAXB context and schema may be reused safely, while each call creates its own parser and unmarshaller and retains no document state.
+- Validation-boundary decision: XSD-valid boundary values, including zero or negative initial cash, event IDs across the full `int` range, zero LMSR `b`, and Order Book attributes, are unmarshalled without applying later Java business rules. The component performs no version detection, v1 fallback, user creation, Market Maker assignment, event construction, or trading behavior.
+- Test matrix: The focused suite verifies complete field mapping for `small.xml` and `multiple.xml`; schema-boundary mapping for zero and negative IDs and values; rejection of all nine invalid-schema fixtures; malformed XML; `DOCTYPE`; XXE; missing files; ignored external schema hints; repeated calls without shared state; coexistence of the v1 and v2 generated types; and explicit rejection of a v1 document by the v2 path.
+- Changed files:
+  - `Engine/pom.xml`
+  - `Engine/src/main/java/guessmarket/engine/loading/Assignment2XmlUnmarshaller.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/SecureXmlInputFactory.java`
+  - `Engine/src/main/java/guessmarket/engine/loading/XmlFormatDetector.java`
+  - `Engine/src/test/java/guessmarket/engine/loading/Assignment2XmlUnmarshallerTest.java`
+  - `docs/Assignment_2_Design_Decisions.md`
+- Validation result: The focused Assignment 2 unmarshaller suite ran 20 tests with 0 failures and 0 errors. A clean Engine build regenerated all 13 v2 bindings and ran 260 tests with 0 failures and 0 errors; `EngineSmokeTest` passed with assertions enabled. ConsoleUI compiled and ran all 3 tests successfully, and JavaFXUI compiled and ran all 3 tests successfully. The Engine JAR contains both official schemas and the compiled v2 JAXB classes, while Assignment 2 XML test fixtures are excluded. Security, unchanged-loader, no-fallback, generated-source, scope, and whitespace audits passed.
+- Commit ID: Recorded in the final run summary after commit creation.
+
 ## Stage 14A: JavaFX UI Module Foundation
 
 - Status: Completed. Full Events and Users screens, Engine integration, XML file selection, Order Book UI, and final packaging remain deferred to later Stage 14 work.

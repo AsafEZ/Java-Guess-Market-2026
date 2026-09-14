@@ -12,19 +12,21 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jaxb.version>4.0.5</jaxb.version>
+        <jaxb2-maven-plugin.version>4.1.0</jaxb2-maven-plugin.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
-            <version>4.0.5</version>
+            <version>${jaxb.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
-            <version>4.0.5</version>
+            <version>${jaxb.version}</version>
         </dependency>
 
         <dependency>
@@ -34,5 +36,45 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
+                <version>${jaxb2-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-assignment2-jaxb</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/main/resources/GM-EX2-Schema.xsd</source>
+                            </sources>
+                            <outputDirectory>${project.build.directory}/generated-sources/jaxb-v2</outputDirectory>
+                            <packageName>guessmarket.engine.loading.jaxb.v2</packageName>
+                            <clearOutputDir>true</clearOutputDir>
+                            <externalEntityProcessing>false</externalEntityProcessing>
+                            <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-xjc</artifactId>
+                        <version>${jaxb.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-jxc</artifactId>
+                        <version>${jaxb.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

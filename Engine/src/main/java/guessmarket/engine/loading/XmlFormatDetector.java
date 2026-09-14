@@ -23,7 +23,7 @@ final class XmlFormatDetector {
     XmlFormatVersion detect(Path xmlPath) {
         validatePath(xmlPath);
 
-        XMLInputFactory factory = secureInputFactory();
+        XMLInputFactory factory = SecureXmlInputFactory.create();
         try (InputStream stream = Files.newInputStream(xmlPath)) {
             XMLStreamReader reader = factory.createXMLStreamReader(stream);
             try {
@@ -36,21 +36,6 @@ final class XmlFormatDetector {
         } catch (IOException | XMLStreamException ex) {
             throw xmlError("Could not inspect the XML document.", ex);
         }
-    }
-
-    private static XMLInputFactory secureInputFactory() {
-        XMLInputFactory factory = XMLInputFactory.newFactory();
-        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, true);
-        factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false);
-        if (factory.isPropertySupported(XMLConstants.ACCESS_EXTERNAL_DTD)) {
-            factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-        }
-        factory.setXMLResolver((publicId, systemId, baseUri, namespace) -> {
-            throw new XMLStreamException("External XML resources are disabled.");
-        });
-        return factory;
     }
 
     private static XmlFormatVersion detect(XMLStreamReader reader)
