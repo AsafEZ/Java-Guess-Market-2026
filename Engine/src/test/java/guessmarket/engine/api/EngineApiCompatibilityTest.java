@@ -7,11 +7,13 @@ import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
 import guessmarket.engine.dto.PurchaseResult;
+import guessmarket.engine.dto.OrderSubmissionResult;
 import guessmarket.engine.dto.SettlementResult;
 import guessmarket.engine.dto.UserDetails;
 import guessmarket.engine.dto.UserPurchaseResult;
 import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.enums.EventStatus;
+import guessmarket.engine.enums.OrderSide;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -63,8 +65,17 @@ class EngineApiCompatibilityTest {
                 int.class,
                 String.class,
                 int.class);
+        assertMethod(
+                "submitOrder",
+                OrderSubmissionResult.class,
+                int.class,
+                String.class,
+                int.class,
+                OrderSide.class,
+                long.class,
+                double.class);
 
-        assertEquals(14, GuessMarketEngine.class.getDeclaredMethods().length);
+        assertEquals(15, GuessMarketEngine.class.getDeclaredMethods().length);
         for (Method method : GuessMarketEngine.class.getDeclaredMethods()) {
             assertFalse(method.toGenericString().contains("guessmarket.engine.domain"));
         }

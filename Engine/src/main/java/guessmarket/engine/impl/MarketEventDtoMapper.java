@@ -12,11 +12,11 @@ import guessmarket.engine.dto.OptionSummary;
 import guessmarket.engine.dto.PositionDetails;
 import guessmarket.engine.dto.TradeDetails;
 import guessmarket.engine.dto.TradingMechanismDetails;
-import guessmarket.engine.exception.EngineException;
-import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.trading.orderbook.OrderBookTradingOperations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -47,8 +47,17 @@ final class MarketEventDtoMapper {
                 event.getWinningOptionNumber());
         Optional<String> winningOptionName = winningOptionNumber.map(
                 optionNumber -> event.findOption(optionNumber).getName());
-        List<PositionDetails> participants = system.getAllUsers().stream()
+        LinkedHashSet<String> participantNames = new LinkedHashSet<>();
+        system.getAllUsers().stream()
                 .filter(user -> user.hasPosition(event.getId()))
+                .map(user -> user.getName())
+                .forEach(participantNames::add);
+        if (event.getTradingMechanism()
+                instanceof OrderBookTradingOperations orderBook) {
+            participantNames.addAll(orderBook.getPendingParticipantNames());
+        }
+        List<PositionDetails> participants = participantNames.stream()
+                .map(system::getUser)
                 .map(user -> UserDtoMapper.toPositionDetails(user, event))
                 .toList();
 
@@ -73,10 +82,19 @@ final class MarketEventDtoMapper {
     private static TradingMechanismDetails toMechanismDetails(MarketEvent event) {
         return switch (event.getTradingMethod()) {
             case LMSR -> toLmsrDetails(event);
-            case ORDER_BOOK -> throw new EngineException(
-                    ErrorCode.WRONG_TRADING_METHOD,
-                    "Order Book details are not exposed by the Engine API yet.");
+            case ORDER_BOOK -> OrderBookDtoMapper.toMechanismDetails(
+                    event, requireOrderBookOperations(event));
         };
+    }
+
+    private static OrderBookTradingOperations requireOrderBookOperations(
+            MarketEvent event) {
+        if (event.getTradingMechanism()
+                instanceof OrderBookTradingOperations orderBookOperations) {
+            return orderBookOperations;
+        }
+        throw new IllegalStateException(
+                "ORDER_BOOK event does not expose Order Book operations.");
     }
 
     private static LmsrEventDetails toLmsrDetails(MarketEvent event) {

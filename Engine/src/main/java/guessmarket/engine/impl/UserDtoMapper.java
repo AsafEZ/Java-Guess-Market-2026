@@ -9,9 +9,11 @@ import guessmarket.engine.dto.PositionDetails;
 import guessmarket.engine.dto.TradeDetails;
 import guessmarket.engine.dto.UserDetails;
 import guessmarket.engine.dto.UserSummary;
+import guessmarket.engine.trading.orderbook.OrderBookTradingOperations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -35,7 +37,15 @@ final class UserDtoMapper {
                 .filter(event -> event.isMarketMaker(user.getName()))
                 .map(MarketEvent::getId)
                 .collect(Collectors.toSet());
-        List<PositionDetails> positions = user.getPositionEventIds().stream()
+        LinkedHashSet<Integer> participationEventIds = new LinkedHashSet<>(
+                user.getPositionEventIds());
+        system.getAllEvents().stream()
+                .filter(event -> event.getTradingMechanism()
+                        instanceof OrderBookTradingOperations orderBook
+                        && orderBook.getPendingParticipantNames().contains(user.getName()))
+                .map(MarketEvent::getId)
+                .forEach(participationEventIds::add);
+        List<PositionDetails> positions = participationEventIds.stream()
                 .map(system::getEvent)
                 .map(event -> toPositionDetails(user, event))
                 .toList();

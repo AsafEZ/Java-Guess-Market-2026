@@ -7,6 +7,7 @@ import guessmarket.engine.domain.MarketEvent;
 import guessmarket.engine.domain.MarketSystem;
 import guessmarket.engine.domain.PurchaseOutcome;
 import guessmarket.engine.domain.SettlementOutcome;
+import guessmarket.engine.trading.orderbook.OrderSubmissionOutcome;
 import guessmarket.engine.dto.CloseEventResult;
 import guessmarket.engine.dto.EventDetails;
 import guessmarket.engine.dto.EventSummary;
@@ -14,12 +15,14 @@ import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
 import guessmarket.engine.dto.PurchaseResult;
+import guessmarket.engine.dto.OrderSubmissionResult;
 import guessmarket.engine.dto.SettlementResult;
 import guessmarket.engine.dto.UserDetails;
 import guessmarket.engine.dto.UserPurchaseResult;
 import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.enums.OrderSide;
 import guessmarket.engine.loading.MarketSystemXmlLoader;
 
 import java.nio.file.Files;
@@ -167,6 +170,30 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
         SettlementOutcome outcome = system.closeEvent(
                 eventId, normalizedName, winningOptionNumber);
         return SettlementDtoMapper.toResult(outcome, system);
+    }
+
+    @Override
+    public synchronized OrderSubmissionResult submitOrder(
+            int eventId,
+            String userName,
+            int optionNumber,
+            OrderSide side,
+            long quantity,
+            double limitPrice) {
+        MarketSystem system = requireSystem();
+        String normalizedName = normalizeUserName(userName);
+        OrderSubmissionOutcome outcome = system.submitOrder(
+                normalizedName,
+                eventId,
+                optionNumber,
+                side,
+                quantity,
+                limitPrice);
+        return OrderBookDtoMapper.toSubmissionResult(
+                outcome,
+                system.getEvent(eventId),
+                system.getUser(normalizedName),
+                system);
     }
 
     @Override

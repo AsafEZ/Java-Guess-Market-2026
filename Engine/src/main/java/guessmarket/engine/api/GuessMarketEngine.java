@@ -7,10 +7,12 @@ import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
 import guessmarket.engine.dto.PurchaseResult;
+import guessmarket.engine.dto.OrderSubmissionResult;
 import guessmarket.engine.dto.SettlementResult;
 import guessmarket.engine.dto.UserDetails;
 import guessmarket.engine.dto.UserPurchaseResult;
 import guessmarket.engine.dto.UserSummary;
+import guessmarket.engine.enums.OrderSide;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -49,6 +51,14 @@ public interface GuessMarketEngine {
             int eventId,
             String actingUserName,
             int winningOptionNumber);
+
+    OrderSubmissionResult submitOrder(
+            int eventId,
+            String userName,
+            int optionNumber,
+            OrderSide side,
+            long quantity,
+            double limitPrice);
 
     boolean isSystemLoaded();
 }
