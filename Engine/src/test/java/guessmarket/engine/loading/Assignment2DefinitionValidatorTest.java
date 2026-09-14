@@ -126,6 +126,10 @@ class Assignment2DefinitionValidatorTest {
                 ErrorCode.INVALID_ORDER_BOOK_D,
                 withSecondEvent(source, event(
                         2, "Book", new OrderBookDefinition(true, 0, 0))));
+        assertError(
+                ErrorCode.INVALID_ORDER_BOOK_INITIAL,
+                withSecondEvent(source, event(
+                        2, "Book", new OrderBookDefinition(true, 5, 2))));
     }
 
     @Test

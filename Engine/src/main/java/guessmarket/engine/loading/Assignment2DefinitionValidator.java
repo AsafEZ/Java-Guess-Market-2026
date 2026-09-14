@@ -140,6 +140,12 @@ final class Assignment2DefinitionValidator {
                         "Event " + event.id() + " has Order Book d="
                                 + orderBook.d() + "; d must be positive.");
             }
+            if (orderBook.initial() % orderBook.d() != 0) {
+                throw new EngineException(
+                        ErrorCode.INVALID_ORDER_BOOK_INITIAL,
+                        "Event " + event.id()
+                                + " has an initial investment that is not divisible by d.");
+            }
             return;
         }
         throw new EngineException(

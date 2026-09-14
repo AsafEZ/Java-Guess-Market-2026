@@ -1,9 +1,15 @@
 package guessmarket.engine.domain;
 
 import guessmarket.engine.enums.CommissionType;
+import guessmarket.engine.enums.OrderSide;
+import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.enums.UserStatus;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
+import guessmarket.engine.trading.orderbook.OrderBookTradingOperations;
+import guessmarket.engine.trading.orderbook.OrderExecution;
+import guessmarket.engine.trading.orderbook.OrderSubmissionOutcome;
+import guessmarket.engine.trading.orderbook.PreparedOrderSubmission;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -66,13 +72,24 @@ public final class MarketSystem {
                     "A blocked user account cannot open an event.");
         }
 
+        if (event.getTradingMethod() == TradingMethod.LMSR) {
+            openLmsrEvent(event, user);
+        } else if (event.getTradingMethod() == TradingMethod.ORDER_BOOK) {
+            openOrderBookEvent(event, user);
+        } else {
+            throw new EngineException(
+                    ErrorCode.WRONG_TRADING_METHOD,
+                    "Event " + eventId + " uses an unsupported trading method.");
+        }
+    }
+
+    private static void openLmsrEvent(MarketEvent event, User user) {
         double requiredSubsidy = event.getRequiredInitialSubsidy();
         if (!user.canAfford(requiredSubsidy)) {
             throw new EngineException(
                     ErrorCode.INSUFFICIENT_FUNDS,
                     "The Market Maker cannot afford the required initial funding.");
         }
-
         event.validateInitialFundingCapacity(requiredSubsidy);
         user.debit(requiredSubsidy);
         try {
@@ -81,6 +98,46 @@ public final class MarketSystem {
             user.credit(requiredSubsidy);
             throw exception;
         }
+    }
+
+    private static void openOrderBookEvent(MarketEvent event, User marketMaker) {
+        OrderBookTradingOperations orderBook = event.requireOrderBookOperations();
+        int initialInvestment = orderBook.getInitialInvestment();
+        long pairQuantity = initialInvestment / orderBook.getD();
+        if (initialInvestment > 0 && !marketMaker.canAfford(initialInvestment)) {
+            throw new EngineException(
+                    ErrorCode.INSUFFICIENT_FUNDS,
+                    "The Market Maker cannot afford the required initial inventory.");
+        }
+
+        event.validateOrderBookOpening(initialInvestment, pairQuantity);
+        if (pairQuantity > 0L) {
+            double paidPerOption = initialInvestment / 2.0;
+            for (MarketOption option : event.getOptions()) {
+                marketMaker.validateExecutedPurchase(
+                        event.getId(),
+                        option.getOptionNumber(),
+                        pairQuantity,
+                        paidPerOption,
+                        0.0);
+            }
+        }
+
+        if (initialInvestment > 0) {
+            marketMaker.debit(initialInvestment);
+        }
+        if (pairQuantity > 0L) {
+            double paidPerOption = initialInvestment / 2.0;
+            for (MarketOption option : event.getOptions()) {
+                marketMaker.applyValidatedExecutedPurchase(
+                        event.getId(),
+                        option.getOptionNumber(),
+                        pairQuantity,
+                        paidPerOption,
+                        0.0);
+            }
+        }
+        event.applyValidatedOrderBookOpening(initialInvestment, pairQuantity);
     }
 
     public synchronized PurchaseOutcome purchaseShares(
@@ -139,6 +196,249 @@ public final class MarketSystem {
                 quote.shareCost(),
                 quote.commission());
         return event.applyPreparedUserPurchase(preparedPurchase);
+    }
+
+    public synchronized OrderSubmissionOutcome submitOrder(
+            String userName,
+            int eventId,
+            int optionNumber,
+            OrderSide side,
+            long quantity,
+            double limitPrice) {
+        User submittingUser = getUser(userName);
+        MarketEvent event = getEvent(eventId);
+        event.requireActive();
+        if (!event.hasMarketMaker()) {
+            throw new EngineException(
+                    ErrorCode.MARKET_MAKER_NOT_ASSIGNED,
+                    "Event " + eventId + " does not have a Market Maker.");
+        }
+        if (submittingUser.getStatus() == UserStatus.BLOCKED) {
+            throw new EngineException(
+                    ErrorCode.USER_ACCOUNT_BLOCKED,
+                    "A blocked user account cannot submit an order.");
+        }
+
+        OrderBookTradingOperations orderBook = event.requireOrderBookOperations();
+        if (side == OrderSide.SELL) {
+            validateAvailableShares(
+                    submittingUser,
+                    eventId,
+                    optionNumber,
+                    quantity,
+                    orderBook);
+        }
+
+        PreparedOrderSubmission prepared = orderBook.prepareOrder(
+                submittingUser.getName(), optionNumber, side, quantity, limitPrice);
+        PreparedOrderTransaction transaction = prepareOrderTransaction(
+                event, getUser(event.getMarketMakerName()), prepared);
+        applyOrderTransaction(event, orderBook, prepared, transaction);
+        return prepared.outcome();
+    }
+
+    private static void validateAvailableShares(
+            User seller,
+            int eventId,
+            int optionNumber,
+            long quantity,
+            OrderBookTradingOperations orderBook) {
+        long ownedShares = seller.getSharesForOption(eventId, optionNumber);
+        long pendingShares = orderBook.getPendingSellQuantity(
+                seller.getName(), optionNumber);
+        long availableShares;
+        try {
+            availableShares = Math.subtractExact(ownedShares, pendingShares);
+        } catch (ArithmeticException exception) {
+            throw new EngineException(
+                    ErrorCode.ORDER_BOOK_STATE_MISMATCH,
+                    "Pending sell orders exceed the seller's position.",
+                    exception);
+        }
+        if (quantity <= 0L || quantity > availableShares) {
+            throw new EngineException(
+                    ErrorCode.INSUFFICIENT_SHARES,
+                    "The seller does not have enough unreserved shares.");
+        }
+    }
+
+    private PreparedOrderTransaction prepareOrderTransaction(
+            MarketEvent event,
+            User marketMaker,
+            PreparedOrderSubmission prepared) {
+        Map<User, Double> balanceDeltas = new LinkedHashMap<>();
+        Map<PositionKey, PurchaseAccumulator> purchases = new LinkedHashMap<>();
+        Map<PositionKey, Long> sales = new LinkedHashMap<>();
+        Map<Integer, Long> mintedShares = new LinkedHashMap<>();
+        double eventCredit = 0.0;
+
+        for (OrderExecution execution : prepared.outcome().executions()) {
+            User buyer = getUser(execution.buyerName());
+            double shareCost = execution.shareCost();
+            double commission = event.getCommissionPolicy().type()
+                    == CommissionType.ON_PURCHASE
+                    ? finiteNonNegative(
+                            event.getCommissionPolicy().calculate(shareCost),
+                            "Order commission exceeds the supported numeric range.")
+                    : 0.0;
+            double buyerCharge = buyer == marketMaker
+                    ? shareCost
+                    : finiteNonNegative(
+                            shareCost + commission,
+                            "Order charge exceeds the supported numeric range.");
+
+            addBalanceDelta(balanceDeltas, buyer, -buyerCharge);
+            if (buyer != marketMaker && commission > 0.0) {
+                addBalanceDelta(balanceDeltas, marketMaker, commission);
+            }
+            accumulatePurchase(
+                    purchases,
+                    new PositionKey(buyer, execution.optionNumber()),
+                    execution.quantity(),
+                    shareCost,
+                    commission);
+
+            if (execution.minted()) {
+                eventCredit = addFinite(eventCredit, shareCost);
+                mintedShares.merge(
+                        execution.optionNumber(),
+                        execution.quantity(),
+                        MarketSystem::addExact);
+            } else {
+                User seller = getUser(execution.sellerName().orElseThrow());
+                addBalanceDelta(balanceDeltas, seller, shareCost);
+                sales.merge(
+                        new PositionKey(seller, execution.optionNumber()),
+                        execution.quantity(),
+                        MarketSystem::addExact);
+            }
+        }
+
+        List<BalanceChange> balanceChanges = new ArrayList<>();
+        for (Map.Entry<User, Double> entry : balanceDeltas.entrySet()) {
+            entry.getKey().validateBalanceDelta(entry.getValue());
+            balanceChanges.add(new BalanceChange(entry.getKey(), entry.getValue()));
+        }
+
+        List<SaleChange> saleChanges = new ArrayList<>();
+        for (Map.Entry<PositionKey, Long> entry : sales.entrySet()) {
+            PositionKey key = entry.getKey();
+            key.user().validateSale(
+                    event.getId(), key.optionNumber(), entry.getValue());
+            saleChanges.add(new SaleChange(
+                    key.user(), key.optionNumber(), entry.getValue()));
+        }
+
+        List<PurchaseChange> purchaseChanges = new ArrayList<>();
+        for (Map.Entry<PositionKey, PurchaseAccumulator> entry
+                : purchases.entrySet()) {
+            PositionKey key = entry.getKey();
+            PurchaseAccumulator value = entry.getValue();
+            key.user().validateExecutedPurchase(
+                    event.getId(),
+                    key.optionNumber(),
+                    value.quantity,
+                    value.paidAmount,
+                    value.commissionPaid);
+            purchaseChanges.add(new PurchaseChange(
+                    key.user(),
+                    key.optionNumber(),
+                    value.quantity,
+                    value.paidAmount,
+                    value.commissionPaid));
+        }
+
+        if (eventCredit > 0.0) {
+            event.getAccount().validateShareCostCredit(eventCredit);
+        }
+        List<MintChange> mintChanges = new ArrayList<>();
+        for (Map.Entry<Integer, Long> entry : mintedShares.entrySet()) {
+            MarketOption option = event.findOption(entry.getKey());
+            option.validateAddShares(entry.getValue());
+            mintChanges.add(new MintChange(option, entry.getValue()));
+        }
+
+        return new PreparedOrderTransaction(
+                List.copyOf(balanceChanges),
+                List.copyOf(saleChanges),
+                List.copyOf(purchaseChanges),
+                List.copyOf(mintChanges),
+                eventCredit);
+    }
+
+    private static void applyOrderTransaction(
+            MarketEvent event,
+            OrderBookTradingOperations orderBook,
+            PreparedOrderSubmission prepared,
+            PreparedOrderTransaction transaction) {
+        orderBook.applyPreparedOrder(prepared);
+        for (BalanceChange change : transaction.balanceChanges()) {
+            change.user().applyValidatedBalanceDelta(change.delta());
+        }
+        for (SaleChange change : transaction.saleChanges()) {
+            change.user().applyValidatedSale(
+                    event.getId(), change.optionNumber(), change.quantity());
+        }
+        for (PurchaseChange change : transaction.purchaseChanges()) {
+            change.user().applyValidatedExecutedPurchase(
+                    event.getId(),
+                    change.optionNumber(),
+                    change.quantity(),
+                    change.paidAmount(),
+                    change.commissionPaid());
+        }
+        if (transaction.eventCredit() > 0.0) {
+            event.getAccount().applyValidatedShareCostCredit(
+                    transaction.eventCredit());
+        }
+        for (MintChange change : transaction.mintChanges()) {
+            change.option().applyValidatedAddShares(change.quantity());
+        }
+    }
+
+    private static void addBalanceDelta(
+            Map<User, Double> deltas,
+            User user,
+            double delta) {
+        double result = deltas.getOrDefault(user, 0.0) + delta;
+        if (!Double.isFinite(result)) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "Account balance change exceeds the supported numeric range.");
+        }
+        deltas.put(user, result);
+    }
+
+    private static void accumulatePurchase(
+            Map<PositionKey, PurchaseAccumulator> purchases,
+            PositionKey key,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+        PurchaseAccumulator accumulator = purchases.computeIfAbsent(
+                key, ignored -> new PurchaseAccumulator());
+        accumulator.quantity = addExact(accumulator.quantity, quantity);
+        accumulator.paidAmount = addFinite(accumulator.paidAmount, paidAmount);
+        accumulator.commissionPaid = addFinite(
+                accumulator.commissionPaid, commissionPaid);
+    }
+
+    private static long addExact(long first, long second) {
+        try {
+            return Math.addExact(first, second);
+        } catch (ArithmeticException exception) {
+            throw new EngineException(
+                    ErrorCode.ARITHMETIC_OVERFLOW,
+                    "Order quantity exceeds the supported range.",
+                    exception);
+        }
+    }
+
+    private static double finiteNonNegative(double value, String message) {
+        if (!Double.isFinite(value) || value < 0.0) {
+            throw new EngineException(ErrorCode.ARITHMETIC_OVERFLOW, message);
+        }
+        return value;
     }
 
     public synchronized SettlementOutcome closeEvent(
@@ -517,6 +817,40 @@ public final class MarketSystem {
     }
 
     private record PreparedCredit(User user, double amount) {
+    }
+
+    private record PreparedOrderTransaction(
+            List<BalanceChange> balanceChanges,
+            List<SaleChange> saleChanges,
+            List<PurchaseChange> purchaseChanges,
+            List<MintChange> mintChanges,
+            double eventCredit) {
+    }
+
+    private record BalanceChange(User user, double delta) {
+    }
+
+    private record SaleChange(User user, int optionNumber, long quantity) {
+    }
+
+    private record PurchaseChange(
+            User user,
+            int optionNumber,
+            long quantity,
+            double paidAmount,
+            double commissionPaid) {
+    }
+
+    private record MintChange(MarketOption option, long quantity) {
+    }
+
+    private record PositionKey(User user, int optionNumber) {
+    }
+
+    private static final class PurchaseAccumulator {
+        private long quantity;
+        private double paidAmount;
+        private double commissionPaid;
     }
 }
 

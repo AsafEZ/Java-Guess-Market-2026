@@ -59,6 +59,14 @@ public final class User {
         account.applyValidatedDebit(amount);
     }
 
+    void validateBalanceDelta(double delta) {
+        account.validateBalanceDelta(delta);
+    }
+
+    void applyValidatedBalanceDelta(double delta) {
+        account.applyValidatedBalanceDelta(delta);
+    }
+
     public boolean hasPosition(int eventId) {
         return account.hasPosition(eventId);
     }
@@ -130,6 +138,14 @@ public final class User {
             double commissionPaid) {
         account.applyValidatedAdditionalCommission(
                 eventId, optionNumber, commissionPaid);
+    }
+
+    void validateSale(int eventId, int optionNumber, long quantity) {
+        account.validateSale(eventId, optionNumber, quantity);
+    }
+
+    void applyValidatedSale(int eventId, int optionNumber, long quantity) {
+        account.applyValidatedSale(eventId, optionNumber, quantity);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {

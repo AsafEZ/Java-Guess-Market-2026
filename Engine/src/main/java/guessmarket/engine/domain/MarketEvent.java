@@ -4,6 +4,7 @@ import guessmarket.engine.enums.TradingMethod;
 import guessmarket.engine.trading.TradingMechanism;
 import guessmarket.engine.trading.WinningPayoutOperations;
 import guessmarket.engine.trading.lmsr.LmsrTradingOperations;
+import guessmarket.engine.trading.orderbook.OrderBookTradingOperations;
 import guessmarket.engine.enums.CommissionType;
 import guessmarket.engine.enums.EventStatus;
 import guessmarket.engine.exception.EngineException;
@@ -280,6 +281,15 @@ public final class MarketEvent {
         return requireLmsrOperations().getB();
     }
 
+    OrderBookTradingOperations requireOrderBookOperations() {
+        if (tradingMechanism instanceof OrderBookTradingOperations orderBookOperations) {
+            return orderBookOperations;
+        }
+        throw new EngineException(
+                ErrorCode.WRONG_TRADING_METHOD,
+                "Event " + id + " does not use an Order Book.");
+    }
+
     public double getRequiredInitialSubsidy() {
         return requireLmsrOperations().calculateInitialSubsidy();
     }
@@ -335,6 +345,44 @@ public final class MarketEvent {
         }
 
         account.credit(amount);
+        status = EventStatus.ACTIVE;
+    }
+
+    void validateOrderBookOpening(double initialInvestment, long pairQuantity) {
+        requireCanOpen();
+        OrderBookTradingOperations orderBook = requireOrderBookOperations();
+        if (Double.compare(initialInvestment, orderBook.getInitialInvestment()) != 0) {
+            throw new EngineException(
+                    ErrorCode.ORDER_BOOK_STATE_MISMATCH,
+                    "Initial funding no longer matches the Order Book configuration.");
+        }
+        if (pairQuantity < 0L
+                || pairQuantity != orderBook.getInitialInvestment() / orderBook.getD()) {
+            throw new EngineException(
+                    ErrorCode.ORDER_BOOK_STATE_MISMATCH,
+                    "Initial inventory no longer matches the Order Book configuration.");
+        }
+        if (initialInvestment > 0.0) {
+            account.validateCredit(initialInvestment);
+        }
+        if (pairQuantity > 0L) {
+            for (MarketOption option : options) {
+                option.validateAddShares(pairQuantity);
+            }
+        }
+    }
+
+    void applyValidatedOrderBookOpening(
+            double initialInvestment,
+            long pairQuantity) {
+        if (initialInvestment > 0.0) {
+            account.credit(initialInvestment);
+        }
+        if (pairQuantity > 0L) {
+            for (MarketOption option : options) {
+                option.applyValidatedAddShares(pairQuantity);
+            }
+        }
         status = EventStatus.ACTIVE;
     }
 

@@ -59,6 +59,25 @@ public final class UserAccount {
         }
     }
 
+    void validateBalanceDelta(double delta) {
+        if (!Double.isFinite(delta)) {
+            throw new IllegalArgumentException("Balance delta must be finite.");
+        }
+        if (delta < 0.0 && status == UserStatus.BLOCKED) {
+            throw new EngineException(
+                    ErrorCode.USER_ACCOUNT_BLOCKED,
+                    "A blocked user account cannot be debited.");
+        }
+        finiteResult(balance + delta);
+    }
+
+    void applyValidatedBalanceDelta(double delta) {
+        balance += delta;
+        if (balance < 0.0) {
+            status = UserStatus.BLOCKED;
+        }
+    }
+
     public boolean canAfford(double amount) {
         requirePositiveFinite(amount, "amount");
         return status == UserStatus.ACTIVE && balance >= amount;
@@ -150,6 +169,14 @@ public final class UserAccount {
             double commissionPaid) {
         MarketPosition position = requirePosition(eventId);
         position.applyValidatedAdditionalCommission(optionNumber, commissionPaid);
+    }
+
+    void validateSale(int eventId, int optionNumber, long quantity) {
+        requirePosition(eventId).validateSale(optionNumber, quantity);
+    }
+
+    void applyValidatedSale(int eventId, int optionNumber, long quantity) {
+        requirePosition(eventId).applyValidatedSale(optionNumber, quantity);
     }
 
     public long getSharesForOption(int eventId, int optionNumber) {

@@ -74,6 +74,45 @@ public final class MarketPosition {
                         current.commissionPaid() + commissionPaid));
     }
 
+    void validateSale(int optionNumber, long quantity) {
+        requirePositiveOptionNumber(optionNumber);
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive.");
+        }
+        OptionHolding current = requireHolding(optionNumber);
+        if (current.shares() < quantity) {
+            throw new EngineException(
+                    ErrorCode.INSUFFICIENT_SHARES,
+                    "The seller does not own enough shares.");
+        }
+        remainingPaidAmount(current, quantity);
+    }
+
+    void applyValidatedSale(int optionNumber, long quantity) {
+        OptionHolding current = requireHolding(optionNumber);
+        long remainingShares = current.shares() - quantity;
+        double remainingPaid = remainingPaidAmount(current, quantity);
+        holdingsByOption.put(
+                optionNumber,
+                new OptionHolding(
+                        remainingShares,
+                        remainingPaid,
+                        current.commissionPaid()));
+    }
+
+    private static double remainingPaidAmount(
+            OptionHolding current,
+            long soldQuantity) {
+        long remainingShares = current.shares() - soldQuantity;
+        if (remainingShares == 0L) {
+            return 0.0;
+        }
+        return finiteAmount(
+                current.amountPaid()
+                        * ((double) remainingShares / current.shares()),
+                "remaining paid amount");
+    }
+
     void validateAdditionalCommission(int optionNumber, double commissionPaid) {
         requirePositiveOptionNumber(optionNumber);
         requireFiniteNonNegative(commissionPaid, "commissionPaid");
