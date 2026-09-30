@@ -22,4 +22,12 @@
         <servlet-name>login</servlet-name>
         <url-pattern>/api/login</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>event-upload</servlet-name>
+        <servlet-class>guessmarket.server.EventUploadServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>event-upload</servlet-name>
+        <url-pattern>/api/events/upload</url-pattern>
+    </servlet-mapping>
 </web-app>

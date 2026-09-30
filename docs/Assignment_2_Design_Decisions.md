@@ -868,3 +868,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Engine `clean install` passed 341 tests with 0 failures/errors, including exact supplied v3 sample shapes, accumulation, MM ownership, duplicate names, schema/business errors, and DTD rejection. JavaFXUI `clean package` passed 7 tests. Server `clean package` succeeded; WAR/Engine JAR inspection confirmed the v3 XSD, generated classes, Engine, and Gson are packaged.
 - Implementation result: Stream-based atomic upload is implemented in the Engine; the HTTP upload endpoint and client workflow remain separate stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 5: HTTP XML Upload
+
+- Goal: Allow an authenticated client to upload Assignment 3 XML events to the shared server process.
+- Rationale: The Engine's stream loader must be reachable through HTTP while preserving user ownership, clear errors, and the no-disk-write rule.
+- Design decision: `POST /api/events/upload` accepts raw XML in the HTTP request body (`application/xml`), not multipart. The servlet reads `request.getInputStream()` directly, preventing multipart temp-file spooling, and passes the session user name to the Engine. Shared `HttpApi` writes UTF-8 JSON and stable error codes. Duplicate event names map to HTTP 409, invalid XML/business rules to HTTP 400, and missing login to HTTP 401.
+- Changed files: `EventUploadServlet.java`, `HttpApi.java`, `LoginServlet.java`, `Server/src/main/webapp/WEB-INF/web.xml`, and this decision log.
+- Validation result: Server `clean package` succeeded. Tomcat HTTP checks using the supplied `small.xml` and `multiple.xml` returned counts 1 then 3/4; duplicate upload returned 409, malformed XML 400, unauthenticated upload 401, and health reported `systemLoaded=true`. The Tomcat temp directory contained no uploaded files; Tomcat shut down cleanly. Existing Engine and JavaFXUI regressions passed in Stage 4.
+- Implementation result: Logged-in clients can upload cumulative v3 events without saving XML files on the server.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
