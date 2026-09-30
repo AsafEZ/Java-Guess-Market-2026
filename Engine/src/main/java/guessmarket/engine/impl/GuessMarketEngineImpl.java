@@ -5,6 +5,7 @@ import guessmarket.engine.calculation.LmsrCalculator;
 import guessmarket.engine.domain.CloseOutcome;
 import guessmarket.engine.domain.MarketEvent;
 import guessmarket.engine.domain.MarketSystem;
+import guessmarket.engine.domain.User;
 import guessmarket.engine.domain.PurchaseOutcome;
 import guessmarket.engine.domain.SettlementOutcome;
 import guessmarket.engine.trading.orderbook.OrderSubmissionOutcome;
@@ -34,6 +35,7 @@ import java.util.Objects;
 public final class GuessMarketEngineImpl implements GuessMarketEngine {
     private final LmsrCalculator calculator = new LmsrCalculator();
     private final MarketSystemXmlLoader loader = new MarketSystemXmlLoader(calculator);
+    private final MarketSystem registeredUsers = new MarketSystem();
     private MarketSystem currentSystem;
 
     public GuessMarketEngineImpl() {
@@ -49,6 +51,9 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
 
         // Atomic load: currentSystem is changed only after every step succeeds.
         MarketSystemXmlLoader.LoadedSystem loaded = loader.load(xmlPath);
+        for (User user : registeredUsers.getAllUsers()) {
+            loaded.system().addUser(new User(user.getName()));
+        }
         currentSystem = loaded.system();
 
         return new LoadResult(
@@ -124,14 +129,30 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
 
     @Override
     public synchronized List<UserSummary> getAllUsers() {
-        return requireSystem().getAllUsers().stream()
+        return userSystem().getAllUsers().stream()
                 .map(UserDtoMapper::toSummary)
                 .toList();
     }
 
     @Override
+    public synchronized UserSummary registerUser(String userName) {
+        String normalizedName = normalizeUserName(userName);
+        if (currentSystem != null && currentSystem.getAllUsers().stream()
+                .anyMatch(user -> user.getName().equals(normalizedName))) {
+            throw new EngineException(ErrorCode.DUPLICATE_USER_NAME,
+                    "Duplicate user name: " + normalizedName + ".");
+        }
+        User user = new User(normalizedName);
+        registeredUsers.addUser(user);
+        if (currentSystem != null) {
+            currentSystem.addUser(user);
+        }
+        return UserDtoMapper.toSummary(user);
+    }
+
+    @Override
     public synchronized UserDetails getUserDetails(String userName) {
-        MarketSystem system = requireSystem();
+        MarketSystem system = userSystem();
         String normalizedName = normalizeUserName(userName);
         return UserDtoMapper.toDetails(system.getUser(normalizedName), system);
     }
@@ -208,6 +229,11 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
                     "No valid XML system is currently loaded.");
         }
         return currentSystem;
+    }
+
+    private MarketSystem userSystem() {
+        return currentSystem != null ? currentSystem
+                : registeredUsers.getAllUsers().isEmpty() ? requireSystem() : registeredUsers;
     }
 
     private static String normalizeUserName(String userName) {

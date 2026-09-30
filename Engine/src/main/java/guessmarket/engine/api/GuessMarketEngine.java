@@ -37,6 +37,8 @@ public interface GuessMarketEngine {
 
     List<UserSummary> getAllUsers();
 
+    UserSummary registerUser(String userName);
+
     UserDetails getUserDetails(String userName);
 
     MarketEventDetails openEvent(int eventId, String actingUserName);

@@ -15,6 +15,10 @@ public final class UserAccount {
     private UserStatus status = UserStatus.ACTIVE;
     private final Map<Integer, MarketPosition> positionsByEventId = new LinkedHashMap<>();
 
+    public UserAccount() {
+        balance = 0.0;
+    }
+
     public UserAccount(double initialBalance) {
         requirePositiveFinite(initialBalance, "initialBalance");
         balance = initialBalance;

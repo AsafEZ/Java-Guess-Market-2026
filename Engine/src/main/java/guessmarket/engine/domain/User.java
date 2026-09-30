@@ -9,14 +9,22 @@ public final class User {
     private final String name;
     private final UserAccount account;
 
+    public User(String name) {
+        this(name, new UserAccount());
+    }
+
     public User(String name, double initialBalance) {
+        this(name, new UserAccount(initialBalance));
+    }
+
+    private User(String name, UserAccount account) {
         String trimmedName = Objects.requireNonNull(name, "name").trim();
         if (trimmedName.isEmpty()) {
             throw new IllegalArgumentException("User name cannot be blank.");
         }
 
         this.name = trimmedName;
-        this.account = new UserAccount(initialBalance);
+        this.account = account;
     }
 
     public String getName() {

@@ -75,7 +75,8 @@ class EngineApiCompatibilityTest {
                 long.class,
                 double.class);
 
-        assertEquals(15, GuessMarketEngine.class.getDeclaredMethods().length);
+        assertMethod("registerUser", UserSummary.class, String.class);
+        assertEquals(16, GuessMarketEngine.class.getDeclaredMethods().length);
         for (Method method : GuessMarketEngine.class.getDeclaredMethods()) {
             assertFalse(method.toGenericString().contains("guessmarket.engine.domain"));
         }

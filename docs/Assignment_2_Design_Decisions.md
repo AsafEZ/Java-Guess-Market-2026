@@ -838,3 +838,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Environment note: Oracle JDK 25.0.4 on this Windows host could not open its NIO selector with the default temporary directory. Setting `-Djdk.net.unixdomain.tmpdir=C:\Users\Public` only for the Tomcat test process resolved that host-specific issue; no machine-wide setting was changed.
 - Implementation result: A separately deployable server now owns its Engine instance and responds to HTTP requests. Market operations, login, and upload remain for later stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 2: Runtime User Registration
+
+- Goal: Allow server-side users to register by a unique name before an XML definition is uploaded.
+- Rationale: Assignment 2 creates users only while loading XML; Assignment 3 creates them at login, before any events need exist.
+- Design decision: Add `registerUser(String)` to the Engine public API, returning a data-only `UserSummary`. Reuse `MarketSystem.addUser` and its existing duplicate-name error. A dedicated zero-balance constructor leaves the previous positive-initial-balance constructor unchanged. Keep registered names in a separate registry so pre-upload account reads work without marking an XML system loaded. Legacy `loadSystem(Path)` remains atomic and replaces market state; registered names are re-created as empty accounts on a successful legacy reload, not carried over with stale event positions. Future Assignment 3 uploads will add events to the live system rather than invoke the legacy replacement loader.
+- Changed files: `GuessMarketEngine.java`, `GuessMarketEngineImpl.java`, `User.java`, `UserAccount.java`, `EngineApiCompatibilityTest.java`, `RegistrationEngineApiTest.java`, and this decision log.
+- Validation result: Engine `clean install` passed 334 tests with 0 failures and 0 errors, including 7 new registration tests and all prior Assignment 1/2 regressions. Server `clean package` succeeded against the extended Engine API. JavaFXUI `clean package` passed all 7 tests. The final Engine rerun included the legacy-reload adjustment.
+- Implementation result: Runtime registration, duplicate-name rejection, and pre-upload user reads are implemented; HTTP login remains a later server subtask.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
