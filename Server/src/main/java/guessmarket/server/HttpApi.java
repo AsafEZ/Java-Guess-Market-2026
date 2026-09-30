@@ -2,6 +2,7 @@ package guessmarket.server;
 
 import com.google.gson.Gson;
 import guessmarket.engine.api.GuessMarketEngine;
+import guessmarket.protocol.ErrorView;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,9 +41,6 @@ final class HttpApi {
 
     static void writeError(HttpServletResponse response, int status,
                            String code, String message) throws IOException {
-        writeJson(response, status, new ApiError(code, message));
-    }
-
-    private record ApiError(String errorCode, String message) {
+        writeJson(response, status, new ErrorView(code, message));
     }
 }

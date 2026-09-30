@@ -30,7 +30,8 @@ public final class EventUploadServlet extends HttpServlet {
 
         try (InputStream xml = request.getInputStream()) {
             EventUploadResult result = engine.uploadEvents(xml, userName);
-            HttpApi.writeJson(response, HttpServletResponse.SC_OK, result);
+            HttpApi.writeJson(response, HttpServletResponse.SC_OK,
+                    ViewMapper.upload(result));
         } catch (EngineException exception) {
             int status = exception.getErrorCode() == ErrorCode.DUPLICATE_EVENT_NAME
                     ? HttpServletResponse.SC_CONFLICT : HttpServletResponse.SC_BAD_REQUEST;

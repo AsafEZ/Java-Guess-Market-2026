@@ -30,4 +30,20 @@
         <servlet-name>event-upload</servlet-name>
         <url-pattern>/api/events/upload</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>events</servlet-name>
+        <servlet-class>guessmarket.server.EventsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>events</servlet-name>
+        <url-pattern>/api/events</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>users</servlet-name>
+        <servlet-class>guessmarket.server.UsersServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>users</servlet-name>
+        <url-pattern>/api/users</url-pattern>
+    </servlet-mapping>
 </web-app>

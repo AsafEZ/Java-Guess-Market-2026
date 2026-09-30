@@ -878,3 +878,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Server `clean package` succeeded. Tomcat HTTP checks using the supplied `small.xml` and `multiple.xml` returned counts 1 then 3/4; duplicate upload returned 409, malformed XML 400, unauthenticated upload 401, and health reported `systemLoaded=true`. The Tomcat temp directory contained no uploaded files; Tomcat shut down cleanly. Existing Engine and JavaFXUI regressions passed in Stage 4.
 - Implementation result: Logged-in clients can upload cumulative v3 events without saving XML files on the server.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 6: Shared JSON Protocol and Lists
+
+- Goal: Publish event and user lists through a DTO-only module shared by server and future JavaFX client.
+- Rationale: Existing Engine DTOs contain `Optional` and interface-typed fields that Gson cannot round-trip reliably, and clients must not depend on Engine implementation types.
+- Design decision: A standalone `Protocol` JAR contains flat records with strings, primitives, and lists only; it has no Engine or UI dependency. The server maps Engine summaries to wire views. `GET /api/events` and `GET /api/users` require a session; the events list is empty before the first upload. Login and upload responses also use Protocol views. The user list exposes name, balance, status, and whether the user is MM for any event.
+- Changed files: `Protocol/pom.xml` and view/test classes, Server POM, `ViewMapper.java`, `EventsServlet.java`, `UsersServlet.java`, login/upload response mappings, `HttpApi.java`, `web.xml`, and this decision log.
+- Validation result: Protocol `clean install` passed 2 Gson round-trip tests. Server `clean package` succeeded and WAR inspection found `Protocol-1.0-SNAPSHOT.jar`. Tomcat HTTP tests with two sessions confirmed empty initial events, visible users, cross-client propagation after upload, correct MM indicators, and HTTP 401 without login. Tomcat shut down cleanly.
+- Implementation result: Both clients can consume stable JSON lists without loading Engine classes; detailed event/account operations remain later stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

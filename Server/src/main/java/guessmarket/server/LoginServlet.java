@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.util.Set;
 
 public final class LoginServlet extends HttpServlet {
     static final String USER_NAME_ATTRIBUTE = "guessmarket.userName";
@@ -54,7 +55,8 @@ public final class LoginServlet extends HttpServlet {
         try {
             UserSummary user = engine.registerUser(userName);
             session.setAttribute(USER_NAME_ATTRIBUTE, user.name());
-            HttpApi.writeJson(response, HttpServletResponse.SC_OK, user);
+            HttpApi.writeJson(response, HttpServletResponse.SC_OK,
+                    ViewMapper.user(user, Set.of()));
         } catch (EngineException exception) {
             int status = exception.getErrorCode() == ErrorCode.DUPLICATE_USER_NAME
                     ? HttpServletResponse.SC_CONFLICT : HttpServletResponse.SC_BAD_REQUEST;
@@ -86,6 +88,11 @@ public final class LoginServlet extends HttpServlet {
                     "NOT_LOGGED_IN", "The session user no longer exists.");
             return;
         }
-        HttpApi.writeJson(response, HttpServletResponse.SC_OK, user);
+        boolean isMaker = engine.isSystemLoaded()
+                && engine.getAllMarketEvents().stream()
+                        .anyMatch(event -> event.marketMakerName().stream()
+                                .anyMatch(userName::equals));
+        HttpApi.writeJson(response, HttpServletResponse.SC_OK,
+                ViewMapper.user(user, isMaker ? Set.of(userName) : Set.of()));
     }
 }
