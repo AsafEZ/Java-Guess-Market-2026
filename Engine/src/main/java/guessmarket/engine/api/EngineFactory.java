@@ -10,4 +10,8 @@ public final class EngineFactory {
     public static GuessMarketEngine createEngine() {
         return new GuessMarketEngineImpl();
     }
+
+    public static Assignment3Engine createAssignment3Engine() {
+        return new GuessMarketEngineImpl();
+    }
 }

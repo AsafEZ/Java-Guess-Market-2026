@@ -888,3 +888,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Protocol `clean install` passed 2 Gson round-trip tests. Server `clean package` succeeded and WAR inspection found `Protocol-1.0-SNAPSHOT.jar`. Tomcat HTTP tests with two sessions confirmed empty initial events, visible users, cross-client propagation after upload, correct MM indicators, and HTTP 401 without login. Tomcat shut down cleanly.
 - Implementation result: Both clients can consume stable JSON lists without loading Engine classes; detailed event/account operations remain later stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 7: Authenticated Account Credit
+
+- Goal: Let a logged-in user add funds to their own account, before or after events exist.
+- Rationale: Assignment 3 registers accounts with zero balance, so users need a self-service credit operation before opening or trading.
+- Design decision: Preserve the exact Assignment 2 `GuessMarketEngine` contract and put new operations in `Assignment3Engine`, which extends it; the server obtains this interface through a dedicated factory method. `creditAccount` uses the existing `User.credit` validation/mutation path and a stable `INVALID_CREDIT_AMOUNT` error. `POST /api/account/deposit` accepts a numeric JSON amount and derives the account name exclusively from the HTTP session. The response uses the existing data-only `UserView`; callers cannot supply a different user name.
+- Changed files: Engine API/implementation/factory/error code and regression test, account deposit servlet and server wiring, and this decision log.
+- Validation result: Engine `clean install` passed 343 tests with no failures, including the exact Assignment 2 API compatibility check and new credit validation. Server `clean package` succeeded. On Tomcat 10.1.60, live HTTP checks returned login 200, authenticated deposit 200 with updated balance, unauthenticated deposit 401, invalid negative deposit 400, and the updated balance in the users list. Tomcat shut down cleanly.
+- Implementation result: The server exposes session-bound account credit while the Assignment 2 public interface remains unchanged; account history remains a later stage.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

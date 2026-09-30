@@ -2,6 +2,7 @@ package guessmarket.server;
 
 import com.google.gson.Gson;
 import guessmarket.engine.api.GuessMarketEngine;
+import guessmarket.engine.api.Assignment3Engine;
 import guessmarket.protocol.ErrorView;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +20,11 @@ final class HttpApi {
     static GuessMarketEngine engine(ServletContext context) {
         Object attribute = context.getAttribute(EngineContextListener.ENGINE_ATTRIBUTE);
         return attribute instanceof GuessMarketEngine engine ? engine : null;
+    }
+
+    static Assignment3Engine assignment3Engine(ServletContext context) {
+        GuessMarketEngine engine = engine(context);
+        return engine instanceof Assignment3Engine assignment3 ? assignment3 : null;
     }
 
     static String sessionUserName(HttpServletRequest request) {

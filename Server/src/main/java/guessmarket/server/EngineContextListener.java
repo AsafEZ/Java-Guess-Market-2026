@@ -11,7 +11,7 @@ public final class EngineContextListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         event.getServletContext().setAttribute(
-                ENGINE_ATTRIBUTE, EngineFactory.createEngine());
+                ENGINE_ATTRIBUTE, EngineFactory.createAssignment3Engine());
     }
 
     @Override

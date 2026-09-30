@@ -1,6 +1,7 @@
 package guessmarket.engine.impl;
 
 import guessmarket.engine.api.EngineFactory;
+import guessmarket.engine.api.Assignment3Engine;
 import guessmarket.engine.api.GuessMarketEngine;
 import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.enums.UserStatus;
@@ -54,6 +55,34 @@ class RegistrationEngineApiTest {
             assertEquals(ErrorCode.INVALID_USER_NAME, error.getErrorCode());
         }
         assertFalse(engine.isSystemLoaded());
+    }
+
+    @Test
+    void creditAccountBeforeAndAfterUploadUpdatesOnlyItsOwner() throws Exception {
+        Assignment3Engine engine = EngineFactory.createAssignment3Engine();
+        engine.registerUser("Alice");
+        engine.registerUser("Bob");
+
+        assertEquals(25.5, engine.creditAccount("Alice", 25.5).balance());
+        assertEquals(0.0, engine.getUserDetails("Bob").balance());
+        try (var xml = getClass().getClassLoader().getResourceAsStream(
+                "assignment3/xml/small.xml")) {
+            assertTrue(xml != null);
+            engine.uploadEvents(xml, "Alice");
+            assertEquals(30.5, engine.creditAccount("Alice", 5.0).balance());
+        }
+    }
+
+    @Test
+    void invalidCreditDoesNotChangeBalance() {
+        Assignment3Engine engine = EngineFactory.createAssignment3Engine();
+        engine.registerUser("Alice");
+        for (double amount : new double[]{0.0, -1.0, Double.NaN, Double.POSITIVE_INFINITY}) {
+            EngineException error = assertThrows(EngineException.class,
+                    () -> engine.creditAccount("Alice", amount));
+            assertEquals(ErrorCode.INVALID_CREDIT_AMOUNT, error.getErrorCode());
+        }
+        assertEquals(0.0, engine.getUserDetails("Alice").balance());
     }
 
     @Test

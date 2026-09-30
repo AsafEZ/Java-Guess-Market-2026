@@ -1,6 +1,6 @@
 package guessmarket.engine.impl;
 
-import guessmarket.engine.api.GuessMarketEngine;
+import guessmarket.engine.api.Assignment3Engine;
 import guessmarket.engine.calculation.LmsrCalculator;
 import guessmarket.engine.domain.CloseOutcome;
 import guessmarket.engine.domain.MarketEvent;
@@ -37,7 +37,7 @@ import java.util.Objects;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class GuessMarketEngineImpl implements GuessMarketEngine {
+public final class GuessMarketEngineImpl implements Assignment3Engine {
     private final LmsrCalculator calculator = new LmsrCalculator();
     private final MarketSystemXmlLoader loader = new MarketSystemXmlLoader(calculator);
     private final Assignment3EventLoader assignment3Loader = new Assignment3EventLoader(calculator);
@@ -203,6 +203,17 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
         MarketSystem system = userSystem();
         String normalizedName = normalizeUserName(userName);
         return UserDtoMapper.toDetails(system.getUser(normalizedName), system);
+    }
+
+    @Override
+    public synchronized UserSummary creditAccount(String userName, double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0) {
+            throw new EngineException(ErrorCode.INVALID_CREDIT_AMOUNT,
+                    "Credit amount must be a positive finite number.");
+        }
+        User user = userSystem().getUser(normalizeUserName(userName));
+        user.credit(amount);
+        return UserDtoMapper.toSummary(user);
     }
 
     @Override

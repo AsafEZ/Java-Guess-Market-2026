@@ -46,4 +46,12 @@
         <servlet-name>users</servlet-name>
         <url-pattern>/api/users</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>account-deposit</servlet-name>
+        <servlet-class>guessmarket.server.AccountDepositServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>account-deposit</servlet-name>
+        <url-pattern>/api/account/deposit</url-pattern>
+    </servlet-mapping>
 </web-app>
