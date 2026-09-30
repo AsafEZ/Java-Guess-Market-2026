@@ -898,3 +898,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Engine `clean install` passed 343 tests with no failures, including the exact Assignment 2 API compatibility check and new credit validation. Server `clean package` succeeded. On Tomcat 10.1.60, live HTTP checks returned login 200, authenticated deposit 200 with updated balance, unauthenticated deposit 401, invalid negative deposit 400, and the updated balance in the users list. Tomcat shut down cleanly.
 - Implementation result: The server exposes session-bound account credit while the Assignment 2 public interface remains unchanged; account history remains a later stage.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 8: Per-Account Activity History
+
+- Goal: Expose each logged-in user's financial/action history, including balance changes, commissions, and actions performed by other users that affect the account.
+- Rationale: Server-side trading changes several user balances in one operation, while each client may inspect only its own ledger.
+- Design decision: The synchronized Engine implementation records immutable `AccountActivityDetails` after successful high-level actions. Each affected user receives one row per operation, with a signed balance delta, signed commission (paid negative, received positive), resulting balance, event reference, action type, and UTC timestamp. An unmatched order still gets a zero-delta row for its submitter. Failed operations add no row. History is in-memory and cleared on legacy system reload. `Assignment3Engine` exposes a read method; `GET /api/account/history` derives identity from the session and returns flat Protocol views. The existing Assignment 2 interface is unchanged.
+- Changed files: Assignment 3 Engine API/implementation and account DTO, Protocol view/test, Server mapper/history servlet/mapping, Engine regression tests, and this decision log.
+- Validation result: Engine `clean install` passed 345 tests; Protocol `clean install` passed 3 Gson tests; Server `clean package` succeeded. Live Tomcat checks with Alice and Bob confirmed empty initial history, Alice's deposit row and updated balance, Bob's empty private history, and HTTP 401 without a session. Tomcat shut down cleanly.
+- Implementation result: Private account history is available over JSON, with one row per successful action per affected account.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

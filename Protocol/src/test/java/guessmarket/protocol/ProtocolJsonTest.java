@@ -34,4 +34,14 @@ class ProtocolJsonTest {
         assertEquals(upload, gson.fromJson(gson.toJson(upload), UploadView.class));
         assertEquals(error, gson.fromJson(gson.toJson(error), ErrorView.class));
     }
+
+    @Test
+    void accountActivityRoundTripsWithoutEngineTypes() {
+        AccountActivityView activity = new AccountActivityView(
+                1, "2026-09-30T16:00:00Z", "PURCHASE", 2, "Event",
+                -10.5, -0.5, 89.5);
+
+        assertEquals(activity,
+                gson.fromJson(gson.toJson(activity), AccountActivityView.class));
+    }
 }

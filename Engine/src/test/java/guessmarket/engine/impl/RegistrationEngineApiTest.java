@@ -2,6 +2,7 @@ package guessmarket.engine.impl;
 
 import guessmarket.engine.api.EngineFactory;
 import guessmarket.engine.api.Assignment3Engine;
+import guessmarket.engine.enums.OrderSide;
 import guessmarket.engine.api.GuessMarketEngine;
 import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.enums.UserStatus;
@@ -83,6 +84,65 @@ class RegistrationEngineApiTest {
             assertEquals(ErrorCode.INVALID_CREDIT_AMOUNT, error.getErrorCode());
         }
         assertEquals(0.0, engine.getUserDetails("Alice").balance());
+        assertTrue(engine.getAccountHistory("Alice").isEmpty());
+    }
+
+    @Test
+    void accountHistoryRecordsLmsrActionsAndCommissionAfterSuccess() throws Exception {
+        Assignment3Engine engine = EngineFactory.createAssignment3Engine();
+        engine.registerUser("Maker");
+        engine.registerUser("Buyer");
+        engine.creditAccount("Maker", 500.0);
+        engine.creditAccount("Buyer", 100.0);
+        try (var xml = getClass().getClassLoader().getResourceAsStream(
+                "assignment3/xml/small.xml")) {
+            assertTrue(xml != null);
+            engine.uploadEvents(xml, "Maker");
+        }
+        assertThrows(EngineException.class, () -> engine.openEvent(1, "Buyer"));
+        assertEquals(1, engine.getAccountHistory("Buyer").size());
+
+        engine.openEvent(1, "Maker");
+        engine.purchaseShares(1, "Buyer", 1, 1);
+        engine.closeEvent(1, "Maker", 1);
+
+        var buyerHistory = engine.getAccountHistory("Buyer");
+        assertEquals(List.of("DEPOSIT", "PURCHASE", "CLOSE_EVENT"),
+                buyerHistory.stream().map(entry -> entry.action()).toList());
+        assertTrue(buyerHistory.get(1).amount() < 0.0);
+        assertTrue(buyerHistory.get(1).commission() < 0.0);
+        assertEquals(engine.getUserDetails("Buyer").balance(),
+                buyerHistory.getLast().balanceAfter());
+        assertEquals(List.of("DEPOSIT", "OPEN_EVENT", "PURCHASE", "CLOSE_EVENT"),
+                engine.getAccountHistory("Maker").stream()
+                        .map(entry -> entry.action()).toList());
+    }
+
+    @Test
+    void unmatchedAndMatchedOrdersHaveOneRowPerAffectedAccount() throws Exception {
+        Assignment3Engine engine = EngineFactory.createAssignment3Engine();
+        engine.registerUser("Maker");
+        engine.registerUser("Buyer");
+        engine.creditAccount("Maker", 2000.0);
+        engine.creditAccount("Buyer", 100.0);
+        try (var xml = getClass().getClassLoader().getResourceAsStream(
+                "assignment3/xml/multiple.xml")) {
+            assertTrue(xml != null);
+            engine.uploadEvents(xml, "Maker");
+        }
+        engine.openEvent(1, "Maker");
+        engine.submitOrder(1, "Maker", 1, OrderSide.SELL, 1, 0.40);
+        assertEquals(0.0, engine.getAccountHistory("Maker").getLast().amount());
+        engine.submitOrder(1, "Buyer", 1, OrderSide.BUY, 1, 0.50);
+
+        assertEquals(List.of("DEPOSIT", "ORDER"),
+                engine.getAccountHistory("Buyer").stream()
+                        .map(entry -> entry.action()).toList());
+        assertTrue(engine.getAccountHistory("Buyer").getLast().amount() < 0.0);
+        assertEquals(List.of("DEPOSIT", "OPEN_EVENT", "ORDER", "ORDER"),
+                engine.getAccountHistory("Maker").stream()
+                        .map(entry -> entry.action()).toList());
+        assertTrue(engine.getAccountHistory("Maker").getLast().amount() > 0.0);
     }
 
     @Test

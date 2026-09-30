@@ -22,6 +22,7 @@ import guessmarket.engine.dto.SettlementResult;
 import guessmarket.engine.dto.UserDetails;
 import guessmarket.engine.dto.UserPurchaseResult;
 import guessmarket.engine.dto.UserSummary;
+import guessmarket.engine.dto.AccountActivityDetails;
 import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
 import guessmarket.engine.enums.OrderSide;
@@ -36,6 +37,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.time.Instant;
+import guessmarket.engine.enums.CommissionType;
+import guessmarket.engine.trading.orderbook.OrderExecution;
 
 public final class GuessMarketEngineImpl implements Assignment3Engine {
     private final LmsrCalculator calculator = new LmsrCalculator();
@@ -43,6 +50,8 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
     private final Assignment3EventLoader assignment3Loader = new Assignment3EventLoader(calculator);
     private final MarketSystem registeredUsers = new MarketSystem();
     private MarketSystem currentSystem;
+    private final Map<String, List<AccountActivityDetails>> accountHistory =
+            new LinkedHashMap<>();
 
     public GuessMarketEngineImpl() {
     }
@@ -61,6 +70,7 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
             loaded.system().addUser(new User(user.getName()));
         }
         currentSystem = loaded.system();
+        accountHistory.clear();
 
         return new LoadResult(
                 xmlPath.toAbsolutePath().normalize(),
@@ -195,6 +205,7 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
         if (currentSystem != null) {
             currentSystem.addUser(user);
         }
+        accountHistory.put(user.getName(), new ArrayList<>());
         return UserDtoMapper.toSummary(user);
     }
 
@@ -213,7 +224,15 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
         }
         User user = userSystem().getUser(normalizeUserName(userName));
         user.credit(amount);
+        appendActivity(user, "DEPOSIT", null, null, amount, 0.0);
         return UserDtoMapper.toSummary(user);
+    }
+
+    @Override
+    public synchronized List<AccountActivityDetails> getAccountHistory(String userName) {
+        String normalizedName = normalizeUserName(userName);
+        userSystem().getUser(normalizedName);
+        return List.copyOf(accountHistory.getOrDefault(normalizedName, List.of()));
     }
 
     @Override
@@ -222,7 +241,9 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
             String actingUserName) {
         MarketSystem system = requireSystem();
         String normalizedName = normalizeUserName(actingUserName);
+        Map<String, Double> before = balances(system);
         system.openEvent(eventId, normalizedName);
+        recordAction(system, before, "OPEN_EVENT", eventId, normalizedName, Map.of());
         return MarketEventDtoMapper.toDetails(system.getEvent(eventId), system);
     }
 
@@ -234,8 +255,16 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
             long shareQuantity) {
         MarketSystem system = requireSystem();
         String normalizedName = normalizeUserName(buyerName);
+        Map<String, Double> before = balances(system);
         PurchaseOutcome outcome = system.purchaseShares(
                 normalizedName, eventId, optionNumber, shareQuantity);
+        String maker = system.getEvent(eventId).getMarketMakerName();
+        Map<String, Double> commissions = new LinkedHashMap<>();
+        if (!normalizedName.equals(maker) && outcome.commission() > 0.0) {
+            commissions.put(normalizedName, -outcome.commission());
+            commissions.put(maker, outcome.commission());
+        }
+        recordAction(system, before, "PURCHASE", eventId, normalizedName, commissions);
         return PurchaseDtoMapper.toResult(
                 normalizedName, eventId, outcome, system);
     }
@@ -247,8 +276,21 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
             int winningOptionNumber) {
         MarketSystem system = requireSystem();
         String normalizedName = normalizeUserName(actingUserName);
+        Map<String, Double> before = balances(system);
         SettlementOutcome outcome = system.closeEvent(
                 eventId, normalizedName, winningOptionNumber);
+        Map<String, Double> commissions = new LinkedHashMap<>();
+        for (var settlement : outcome.userSettlements()) {
+            if (settlement.closingCommission() > 0.0) {
+                commissions.merge(settlement.userName(),
+                        -settlement.closingCommission(), Double::sum);
+            }
+        }
+        if (outcome.totalClosingCommission() > 0.0) {
+            commissions.merge(outcome.marketMakerName(),
+                    outcome.totalClosingCommission(), Double::sum);
+        }
+        recordAction(system, before, "CLOSE_EVENT", eventId, normalizedName, commissions);
         return SettlementDtoMapper.toResult(outcome, system);
     }
 
@@ -262,6 +304,7 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
             double limitPrice) {
         MarketSystem system = requireSystem();
         String normalizedName = normalizeUserName(userName);
+        Map<String, Double> before = balances(system);
         OrderSubmissionOutcome outcome = system.submitOrder(
                 normalizedName,
                 eventId,
@@ -269,6 +312,22 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
                 side,
                 quantity,
                 limitPrice);
+        Map<String, Double> commissions = new LinkedHashMap<>();
+        MarketEvent event = system.getEvent(eventId);
+        String maker = event.getMarketMakerName();
+        if (event.getCommissionPolicy().type() == CommissionType.ON_PURCHASE) {
+            for (OrderExecution execution : outcome.executions()) {
+                if (!execution.buyerName().equals(maker)) {
+                    double commission = event.getCommissionPolicy()
+                            .calculate(execution.shareCost());
+                    if (commission > 0.0) {
+                        commissions.merge(execution.buyerName(), -commission, Double::sum);
+                        commissions.merge(maker, commission, Double::sum);
+                    }
+                }
+            }
+        }
+        recordAction(system, before, "ORDER", eventId, normalizedName, commissions);
         return OrderBookDtoMapper.toSubmissionResult(
                 outcome,
                 system.getEvent(eventId),
@@ -293,6 +352,36 @@ public final class GuessMarketEngineImpl implements Assignment3Engine {
     private MarketSystem userSystem() {
         return currentSystem != null ? currentSystem
                 : registeredUsers.getAllUsers().isEmpty() ? requireSystem() : registeredUsers;
+    }
+
+    private static Map<String, Double> balances(MarketSystem system) {
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (User user : system.getAllUsers()) {
+            result.put(user.getName(), user.getBalance());
+        }
+        return result;
+    }
+
+    private void recordAction(MarketSystem system, Map<String, Double> before,
+                              String action, int eventId, String actor,
+                              Map<String, Double> commissions) {
+        String eventName = system.getEvent(eventId).getName();
+        for (User user : system.getAllUsers()) {
+            double amount = user.getBalance() - before.get(user.getName());
+            if (amount != 0.0 || user.getName().equals(actor)) {
+                appendActivity(user, action, eventId, eventName, amount,
+                        commissions.getOrDefault(user.getName(), 0.0));
+            }
+        }
+    }
+
+    private void appendActivity(User user, String action, Integer eventId,
+                                String eventName, double amount, double commission) {
+        List<AccountActivityDetails> entries = accountHistory.computeIfAbsent(
+                user.getName(), ignored -> new ArrayList<>());
+        entries.add(new AccountActivityDetails(entries.size() + 1L,
+                Instant.now().toString(), action, eventId, eventName,
+                amount, commission, user.getBalance()));
     }
 
     private static String normalizeUserName(String userName) {

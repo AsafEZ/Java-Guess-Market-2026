@@ -7,6 +7,8 @@ import guessmarket.protocol.EventView;
 import guessmarket.protocol.OptionView;
 import guessmarket.protocol.UploadView;
 import guessmarket.protocol.UserView;
+import guessmarket.protocol.AccountActivityView;
+import guessmarket.engine.dto.AccountActivityDetails;
 
 import java.util.Set;
 
@@ -33,5 +35,11 @@ final class ViewMapper {
     static UploadView upload(EventUploadResult source) {
         return new UploadView(source.uploadedEventCount(),
                 source.totalEventCount(), source.eventNames());
+    }
+
+    static AccountActivityView activity(AccountActivityDetails source) {
+        return new AccountActivityView(source.id(), source.occurredAt(), source.action(),
+                source.eventId(), source.eventName(), source.amount(),
+                source.commission(), source.balanceAfter());
     }
 }
