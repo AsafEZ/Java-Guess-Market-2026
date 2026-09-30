@@ -44,4 +44,28 @@ class ProtocolJsonTest {
         assertEquals(activity,
                 gson.fromJson(gson.toJson(activity), AccountActivityView.class));
     }
+
+    @Test
+    void eventAndUserDetailsRoundTripWithoutPolymorphicEngineTypes() {
+        EventView summary = new EventView(1, "Event", "Description",
+                "ACTIVE", "ORDER_BOOK", 5, "ON_PURCHASE", 100.0,
+                "Maker", List.of(new OptionView(1, "Yes")));
+        OrderView order = new OrderView(3, "Buyer", 1, "BUY", 2, 1,
+                0.50, "PARTIALLY_FILLED");
+        PositionView position = new PositionView("Buyer", 1, "Event",
+                "ACTIVE", "ORDER_BOOK", false,
+                List.of(new OptionPositionView(1, "Yes", 1, 0.50, 0.025, false)),
+                1, 0.50, 0.025, List.of(), null, null);
+        EventDetailsView event = new EventDetailsView(summary, 0.025,
+                null, null, null, true, 100, 1,
+                List.of(new OptionMarketView(1, "Yes", 1, null, 0.50,
+                        0.50, null, null, null, List.of(order), List.of())),
+                List.of(), List.of(new ExecutionView(1, 1, "Buyer", null,
+                        1, 0.50, 0.50, true)), List.of(position));
+        UserDetailsView user = new UserDetailsView("Buyer", 99.475,
+                "ACTIVE", List.of(), List.of(position));
+
+        assertEquals(event, gson.fromJson(gson.toJson(event), EventDetailsView.class));
+        assertEquals(user, gson.fromJson(gson.toJson(user), UserDetailsView.class));
+    }
 }

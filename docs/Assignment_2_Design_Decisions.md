@@ -908,3 +908,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Engine `clean install` passed 345 tests; Protocol `clean install` passed 3 Gson tests; Server `clean package` succeeded. Live Tomcat checks with Alice and Bob confirmed empty initial history, Alice's deposit row and updated balance, Bob's empty private history, and HTTP 401 without a session. Tomcat shut down cleanly.
 - Implementation result: Private account history is available over JSON, with one row per successful action per affected account.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 9: Detailed Event and Private Account Reads
+
+- Goal: Let clients inspect complete LMSR/Order Book event state and their own user positions through HTTP.
+- Rationale: The list views do not contain prices, order books, executions, trades, participant positions, or private account details needed by the JavaFX client.
+- Design decision: `Protocol` contains flat, data-only detail records with no Engine interfaces or `Optional`; absent method-specific values are nullable. The server maps both trading mechanisms into one stable `EventDetailsView`, including orders, executions, trades, positions and current values. `GET /api/event?id=N` requires login and returns 400 for invalid IDs, 404 for missing events. `GET /api/account` derives its identity from the session and never accepts another user name.
+- Changed files: Protocol detail records and Gson tests, Server `ViewMapper`, event/account servlets and mappings, and this decision log.
+- Validation result: Protocol `clean install` passed 4 Gson tests; Server `clean package` succeeded. Live Tomcat checks with two sessions and supplied `multiple.xml` returned valid Order Book (2 options, d=1) and LMSR (2 options, b=200) details; private account reads succeeded, invalid IDs returned 400, missing IDs 404, and unauthenticated reads 401. Tomcat shut down cleanly.
+- Implementation result: The client can retrieve complete method-specific event data and private account state without an Engine dependency.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

@@ -62,4 +62,20 @@
         <servlet-name>account-history</servlet-name>
         <url-pattern>/api/account/history</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>event-details</servlet-name>
+        <servlet-class>guessmarket.server.EventDetailsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>event-details</servlet-name>
+        <url-pattern>/api/event</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>account</servlet-name>
+        <servlet-class>guessmarket.server.AccountServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>account</servlet-name>
+        <url-pattern>/api/account</url-pattern>
+    </servlet-mapping>
 </web-app>
