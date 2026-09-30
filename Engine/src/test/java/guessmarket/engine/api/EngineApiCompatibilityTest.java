@@ -3,6 +3,7 @@ package guessmarket.engine.api;
 import guessmarket.engine.dto.CloseEventResult;
 import guessmarket.engine.dto.EventDetails;
 import guessmarket.engine.dto.EventSummary;
+import guessmarket.engine.dto.EventUploadResult;
 import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.reflect.Method;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -76,7 +78,8 @@ class EngineApiCompatibilityTest {
                 double.class);
 
         assertMethod("registerUser", UserSummary.class, String.class);
-        assertEquals(16, GuessMarketEngine.class.getDeclaredMethods().length);
+        assertMethod("uploadEvents", EventUploadResult.class, InputStream.class, String.class);
+        assertEquals(17, GuessMarketEngine.class.getDeclaredMethods().length);
         for (Method method : GuessMarketEngine.class.getDeclaredMethods()) {
             assertFalse(method.toGenericString().contains("guessmarket.engine.domain"));
         }

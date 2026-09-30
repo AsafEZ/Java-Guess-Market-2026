@@ -858,3 +858,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Server `clean package` succeeded. Tomcat 10.1.60 HTTP smoke returned 200 for a new login and a cookie-authenticated session read, 401 without a session, 409 for same-session and duplicate-name attempts, and 400 for blank names and invalid JSON. Error JSON carried stable `errorCode` values. Tomcat shut down cleanly.
 - Implementation result: The server has a working JSON login endpoint and per-client session identity; other market endpoints remain for later stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 4: Atomic XML v3 Event Upload in Engine
+
+- Goal: Accept an Assignment 3 XML stream, validate it, assign the uploader as Market Maker, and accumulate its events without storing the uploaded file.
+- Rationale: Event IDs and users are absent from the v3 schema, and uploads must not replace or partially modify the live market.
+- Design decision: Generate typed JAXB classes from the supplied v3 XSD and validate a secure input stream with the schema. Reuse Assignment 2's event business validator and event factory for the shared LMSR/Order Book rules. The Engine assigns sequential IDs and checks trimmed, case-sensitive event names against both prior uploads and the current file. It constructs a candidate registry containing existing users/events plus all new events, assigns the uploader as MM, and swaps the registry only after success. The legacy path-based loader remains unchanged.
+- Changed files: Engine API/implementation, v3 schema and loader, shared factory/validator, upload DTO/error code, v3 fixtures/tests, and this decision log.
+- Validation result: Engine `clean install` passed 341 tests with 0 failures/errors, including exact supplied v3 sample shapes, accumulation, MM ownership, duplicate names, schema/business errors, and DTD rejection. JavaFXUI `clean package` passed 7 tests. Server `clean package` succeeded; WAR/Engine JAR inspection confirmed the v3 XSD, generated classes, Engine, and Gson are packaged.
+- Implementation result: Stream-based atomic upload is implemented in the Engine; the HTTP upload endpoint and client workflow remain separate stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

@@ -3,6 +3,7 @@ package guessmarket.engine.api;
 import guessmarket.engine.dto.CloseEventResult;
 import guessmarket.engine.dto.EventDetails;
 import guessmarket.engine.dto.EventSummary;
+import guessmarket.engine.dto.EventUploadResult;
 import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
@@ -15,11 +16,14 @@ import guessmarket.engine.dto.UserSummary;
 import guessmarket.engine.enums.OrderSide;
 
 import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.List;
 
 
 public interface GuessMarketEngine {
     LoadResult loadSystem(Path xmlPath);
+
+    EventUploadResult uploadEvents(InputStream xmlStream, String uploaderName);
 
     List<EventSummary> getAllEvents();
 

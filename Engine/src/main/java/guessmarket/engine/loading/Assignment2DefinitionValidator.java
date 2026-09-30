@@ -30,7 +30,7 @@ final class Assignment2DefinitionValidator {
         }
     }
 
-    private static Set<Integer> validateEvents(Assignment2Definition definition) {
+    static Set<Integer> validateEvents(Assignment2Definition definition) {
         Set<Integer> eventIds = new HashSet<>();
         for (Assignment2EventDefinition event : definition.events()) {
             if (!eventIds.add(event.id())) {

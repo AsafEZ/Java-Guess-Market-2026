@@ -12,6 +12,7 @@ import guessmarket.engine.trading.orderbook.OrderSubmissionOutcome;
 import guessmarket.engine.dto.CloseEventResult;
 import guessmarket.engine.dto.EventDetails;
 import guessmarket.engine.dto.EventSummary;
+import guessmarket.engine.dto.EventUploadResult;
 import guessmarket.engine.dto.LoadResult;
 import guessmarket.engine.dto.MarketEventDetails;
 import guessmarket.engine.dto.MarketEventSummary;
@@ -25,16 +26,21 @@ import guessmarket.engine.exception.EngineException;
 import guessmarket.engine.exception.ErrorCode;
 import guessmarket.engine.enums.OrderSide;
 import guessmarket.engine.loading.MarketSystemXmlLoader;
+import guessmarket.engine.loading.Assignment3EventLoader;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class GuessMarketEngineImpl implements GuessMarketEngine {
     private final LmsrCalculator calculator = new LmsrCalculator();
     private final MarketSystemXmlLoader loader = new MarketSystemXmlLoader(calculator);
+    private final Assignment3EventLoader assignment3Loader = new Assignment3EventLoader(calculator);
     private final MarketSystem registeredUsers = new MarketSystem();
     private MarketSystem currentSystem;
 
@@ -60,6 +66,48 @@ public final class GuessMarketEngineImpl implements GuessMarketEngine {
                 xmlPath.toAbsolutePath().normalize(),
                 loaded.system().size(),
                 loaded.totalInitialSubsidy());
+    }
+
+    @Override
+    public synchronized EventUploadResult uploadEvents(
+            InputStream xmlStream, String uploaderName) {
+        String normalizedName = normalizeUserName(uploaderName);
+        MarketSystem source = currentSystem != null ? currentSystem : registeredUsers;
+        source.getUser(normalizedName);
+
+        long nextId = source.getAllEvents().stream()
+                .mapToLong(MarketEvent::getId)
+                .max().orElse(0L) + 1L;
+        if (nextId > Integer.MAX_VALUE) {
+            throw new EngineException(ErrorCode.ARITHMETIC_OVERFLOW,
+                    "There are no event identifiers left for this upload.");
+        }
+        List<MarketEvent> uploaded = assignment3Loader.load(xmlStream, (int) nextId);
+        Set<String> names = new HashSet<>();
+        for (MarketEvent existing : source.getAllEvents()) {
+            names.add(existing.getName());
+        }
+        for (MarketEvent event : uploaded) {
+            if (!names.add(event.getName())) {
+                throw new EngineException(ErrorCode.DUPLICATE_EVENT_NAME,
+                        "Duplicate event name: " + event.getName() + ".");
+            }
+        }
+
+        MarketSystem candidate = new MarketSystem();
+        for (User user : source.getAllUsers()) {
+            candidate.addUser(user);
+        }
+        for (MarketEvent event : source.getAllEvents()) {
+            candidate.addEvent(event);
+        }
+        for (MarketEvent event : uploaded) {
+            candidate.addEvent(event);
+            candidate.assignMarketMaker(event.getId(), normalizedName);
+        }
+        currentSystem = candidate;
+        return new EventUploadResult(uploaded.size(), candidate.size(),
+                uploaded.stream().map(MarketEvent::getName).toList());
     }
 
     @Override

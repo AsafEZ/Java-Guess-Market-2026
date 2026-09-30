@@ -60,6 +60,22 @@
                             <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-assignment3-jaxb</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/main/resources/GM-EX3-Schema.xsd</source>
+                            </sources>
+                            <outputDirectory>${project.build.directory}/generated-sources/jaxb-v3</outputDirectory>
+                            <packageName>guessmarket.engine.loading.jaxb.v3</packageName>
+                            <clearOutputDir>true</clearOutputDir>
+                            <externalEntityProcessing>false</externalEntityProcessing>
+                            <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
+                        </configuration>
+                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>

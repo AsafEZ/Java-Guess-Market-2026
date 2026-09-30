@@ -30,21 +30,14 @@ final class Assignment2MarketSystemFactory {
 
         double totalInitialSubsidy = 0.0;
         for (Assignment2EventDefinition event : definition.events()) {
-            TradingMechanism mechanism = createMechanism(event.tradingMechanism());
+            MarketEvent marketEvent = createEvent(event);
+            TradingMechanism mechanism = marketEvent.getTradingMechanism();
             if (mechanism instanceof LmsrTradingMechanism lmsr) {
                 totalInitialSubsidy = addFinite(
                         totalInitialSubsidy,
                         lmsr.calculateInitialSubsidy());
             }
-            system.addEvent(MarketEvent.createNotStartedEvent(
-                    event.id(),
-                    event.name().trim(),
-                    event.description().trim(),
-                    createOptions(event.options()),
-                    new CommissionPolicy(
-                            event.commission().percentage(),
-                            event.commission().type()),
-                    mechanism));
+            system.addEvent(marketEvent);
         }
 
         for (UserDefinition user : definition.users()) {
@@ -53,6 +46,18 @@ final class Assignment2MarketSystemFactory {
             }
         }
         return new CreationResult(system, totalInitialSubsidy);
+    }
+
+    MarketEvent createEvent(Assignment2EventDefinition event) {
+        return MarketEvent.createNotStartedEvent(
+                event.id(),
+                event.name().trim(),
+                event.description().trim(),
+                createOptions(event.options()),
+                new CommissionPolicy(
+                        event.commission().percentage(),
+                        event.commission().type()),
+                createMechanism(event.tradingMechanism()));
     }
 
     private TradingMechanism createMechanism(
