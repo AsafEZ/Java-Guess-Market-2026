@@ -918,3 +918,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Protocol `clean install` passed 4 Gson tests; Server `clean package` succeeded. Live Tomcat checks with two sessions and supplied `multiple.xml` returned valid Order Book (2 options, d=1) and LMSR (2 options, b=200) details; private account reads succeeded, invalid IDs returned 400, missing IDs 404, and unauthenticated reads 401. Tomcat shut down cleanly.
 - Implementation result: The client can retrieve complete method-specific event data and private account state without an Engine dependency.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 10: Session-Bound Trading Actions
+
+- Goal: Expose event opening, LMSR purchases, Order Book orders, and event closing over HTTP for the current user only.
+- Rationale: Assignment 3 clients must not invoke Engine methods directly or impersonate another account.
+- Design decision: Four POST routes share a servlet and strict JSON numeric parsing. The actor always comes from `HttpSession`; user names in a request body are ignored. Each successful response contains data-only updated event/account views, the actor's account activity, and the submitted order where relevant. Engine authorization and validation errors map to stable HTTP codes (401 unauthenticated, 403 non-MM, 404 missing event, 409 state/funds conflicts, 400 malformed input).
+- Changed files: Protocol action response/test, Server event action servlet, view mapper visibility, `web.xml`, and this decision log.
+- Validation result: Protocol `clean install` passed 5 Gson tests; Server `clean package` succeeded. Live Tomcat with two sessions and supplied `multiple.xml` confirmed 403 for non-MM open/close, successful MM open/close, successful LMSR purchase, Order Book sell OPEN then matching buy FILLED, 400 for fractional quantity, and 401 without login. Tomcat shut down cleanly.
+- Implementation result: All core market actions are accessible through authenticated HTTP and return JSON views, with no Engine dependency required in the client.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.

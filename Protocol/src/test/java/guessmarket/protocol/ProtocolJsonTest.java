@@ -68,4 +68,13 @@ class ProtocolJsonTest {
         assertEquals(event, gson.fromJson(gson.toJson(event), EventDetailsView.class));
         assertEquals(user, gson.fromJson(gson.toJson(user), UserDetailsView.class));
     }
+
+    @Test
+    void actionResultRoundTrips() {
+        ActionResultView result = new ActionResultView("open", null, null,
+                new AccountActivityView(1, "2026-09-30T16:00:00Z",
+                        "OPEN_EVENT", 1, "Event", -100, 0, 900), null);
+
+        assertEquals(result, gson.fromJson(gson.toJson(result), ActionResultView.class));
+    }
 }

@@ -137,7 +137,7 @@ final class ViewMapper {
                 source.commission(), source.totalPaid());
     }
 
-    private static OrderView order(LimitOrderDetails source) {
+    static OrderView order(LimitOrderDetails source) {
         return new OrderView(source.orderId(), source.userName(),
                 source.optionNumber(), source.side().name(),
                 source.originalQuantity(), source.remainingQuantity(),

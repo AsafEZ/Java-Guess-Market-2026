@@ -78,4 +78,15 @@
         <servlet-name>account</servlet-name>
         <url-pattern>/api/account</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>event-action</servlet-name>
+        <servlet-class>guessmarket.server.EventActionServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>event-action</servlet-name>
+        <url-pattern>/api/event/open</url-pattern>
+        <url-pattern>/api/event/purchase</url-pattern>
+        <url-pattern>/api/event/order</url-pattern>
+        <url-pattern>/api/event/close</url-pattern>
+    </servlet-mapping>
 </web-app>
