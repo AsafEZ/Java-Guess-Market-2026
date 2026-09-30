@@ -827,3 +827,14 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
   - `docs/Assignment_2_Design_Decisions.md`
 - Implementation result: The repository has repeatable Maven build and launch instructions, delivery JARs for all three modules, and automated acceptance coverage for successful and failed JavaFX loading while retaining all existing focused Engine tests.
 - Commit ID: This delivery commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 1: Deployable Server Foundation
+
+- Goal: Create a Tomcat WAR that owns one Engine instance and exposes a minimal HTTP deployment check.
+- Rationale: Establish the separate server process and verify packaging before adding Assignment 3 market operations.
+- Design decision: The servlet context owns the Engine for the lifetime of one deployed WAR. A plain Servlet 6 deployment descriptor registers the listener and `/api/health` endpoint. Maven packages Engine, Gson, and their runtime dependencies into the WAR, while Tomcat provides the Servlet API. No Engine or Assignment 2 UI code depends on the server.
+- Changed files: `Server/pom.xml`, `Server/src/main/java/guessmarket/server/EngineContextListener.java`, `Server/src/main/java/guessmarket/server/HealthServlet.java`, `Server/src/main/webapp/WEB-INF/web.xml`, and this decision log.
+- Validation result: Engine `clean install` passed all 327 tests; JavaFXUI `clean package` passed all 7 tests. Server `clean package` succeeded. WAR inspection confirmed Engine and Gson are bundled while the Servlet API is not. Tomcat 10.1.60 deployed the WAR, and `GET /Server/api/health` returned HTTP 200 with `{"status":"ok","systemLoaded":false}`.
+- Environment note: Oracle JDK 25.0.4 on this Windows host could not open its NIO selector with the default temporary directory. Setting `-Djdk.net.unixdomain.tmpdir=C:\Users\Public` only for the Tomcat test process resolved that host-specific issue; no machine-wide setting was changed.
+- Implementation result: A separately deployable server now owns its Engine instance and responds to HTTP requests. Market operations, login, and upload remain for later stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
