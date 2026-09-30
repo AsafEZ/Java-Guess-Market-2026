@@ -14,4 +14,12 @@
         <servlet-name>health</servlet-name>
         <url-pattern>/api/health</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>login</servlet-name>
+        <servlet-class>guessmarket.server.LoginServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>login</servlet-name>
+        <url-pattern>/api/login</url-pattern>
+    </servlet-mapping>
 </web-app>

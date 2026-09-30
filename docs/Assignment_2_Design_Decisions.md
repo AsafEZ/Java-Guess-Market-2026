@@ -848,3 +848,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Engine `clean install` passed 334 tests with 0 failures and 0 errors, including 7 new registration tests and all prior Assignment 1/2 regressions. Server `clean package` succeeded against the extended Engine API. JavaFXUI `clean package` passed all 7 tests. The final Engine rerun included the legacy-reload adjustment.
 - Implementation result: Runtime registration, duplicate-name rejection, and pre-upload user reads are implemented; HTTP login remains a later server subtask.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 3: HTTP Login
+
+- Goal: Expose runtime registration over HTTP and retain the accepted user identity in a server session.
+- Rationale: Separate JavaFX and browser clients need one consistent login contract, with the Engine remaining the authority for unique user names.
+- Design decision: `POST /api/login` accepts `{"userName":"..."}` and returns the registered `UserSummary` as JSON. Duplicate names and already-logged-in sessions return HTTP 409; malformed JSON and invalid names return HTTP 400. `GET /api/login` reports the current session user or HTTP 401. Both methods use the same Engine instance from the servlet context; no UI classes enter the server or Engine.
+- Changed files: `Server/src/main/java/guessmarket/server/LoginServlet.java`, `Server/src/main/webapp/WEB-INF/web.xml`, and this decision log.
+- Validation result: Server `clean package` succeeded. Tomcat 10.1.60 HTTP smoke returned 200 for a new login and a cookie-authenticated session read, 401 without a session, 409 for same-session and duplicate-name attempts, and 400 for blank names and invalid JSON. Error JSON carried stable `errorCode` values. Tomcat shut down cleanly.
+- Implementation result: The server has a working JSON login endpoint and per-client session identity; other market endpoints remain for later stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
