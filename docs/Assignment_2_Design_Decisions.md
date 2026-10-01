@@ -928,3 +928,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Protocol `clean install` passed 5 Gson tests; Server `clean package` succeeded. Live Tomcat with two sessions and supplied `multiple.xml` confirmed 403 for non-MM open/close, successful MM open/close, successful LMSR purchase, Order Book sell OPEN then matching buy FILLED, 400 for fractional quantity, and 401 without login. Tomcat shut down cleanly.
 - Implementation result: All core market actions are accessible through authenticated HTTP and return JSON views, with no Engine dependency required in the client.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 11: HTTP Client Foundation
+
+- Goal: Create an independent JavaFX client module with a reusable HTTP transport for all Assignment 3 server operations.
+- Rationale: The desktop UI must communicate only with the server and preserve its session cookie across requests; it must not depend on Engine classes.
+- Design decision: `Client` depends on Protocol, Gson, and JavaFX controls, but not Engine. `MarketApiClient` defaults to `http://localhost:8080/Server/api/`, uses a `CookieManager`, and exposes typed login, list/detail, upload, account, history, and action methods. HTTP errors become `ApiException` with status, code, and message. On Windows only, Surefire sets the JDK Unix-domain-socket temp directory to `C:\Users\Public` for in-process HTTP tests; this avoids the host JDK's loopback selector failure without changing production JVM configuration.
+- Changed files: Client Maven module, HTTP transport and error class, focused in-process HTTP tests, and this decision log.
+- Validation result: Client `clean package` succeeded without `JAVA_TOOL_OPTIONS`; both in-process HTTP tests passed. Tests covered cookie reuse after login, upload body bytes/content type, and preservation of HTTP error status/code/message. The client POM has no Engine dependency.
+- Implementation result: The network layer is implemented; JavaFX screens and submission packaging remain later stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
