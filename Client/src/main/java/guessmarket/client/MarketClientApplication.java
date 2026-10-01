@@ -3,6 +3,7 @@ package guessmarket.client;
 import guessmarket.client.net.ApiException;
 import guessmarket.client.net.MarketApiClient;
 import guessmarket.protocol.EventView;
+import guessmarket.protocol.EventDetailsView;
 import guessmarket.protocol.UserDetailsView;
 import guessmarket.protocol.UserView;
 import javafx.application.Application;
@@ -56,13 +57,14 @@ public final class MarketClientApplication extends Application {
     private String currentUser;
     private Label feedback;
     private Label balanceLabel;
-    private Label eventSelectionLabel;
+    private EventDetailPane eventDetail;
     private TableView<EventView> eventTable;
     private ComboBox<String> methodFilter;
     private ComboBox<String> statusFilter;
     private ComboBox<String> commissionFilter;
     private ProgressIndicator uploadProgress;
     private File lastDirectory;
+    private boolean replacingEvents;
 
     @Override
     public void start(Stage stage) {
@@ -194,20 +196,21 @@ public final class MarketClientApplication extends Application {
                 column("Status", event -> event.status(), 90),
                 column("Market maker", event -> event.marketMakerName(), 120)));
         eventTable.getSelectionModel().selectedItemProperty().addListener(
-                (ignored, oldValue, selected) -> eventSelectionLabel.setText(
-                        selected == null ? "Select an event" : selected.name()));
+                (ignored, oldValue, selected) -> {
+                    if (!replacingEvents) {
+                        eventDetail.select(selected);
+                    }
+                });
         Label section = new Label("Events");
         section.getStyleClass().add("section-title");
         VBox left = new VBox(10, section, filters, eventTable);
         left.setPadding(new Insets(16));
         left.getStyleClass().add("master-pane");
         VBox.setVgrow(eventTable, Priority.ALWAYS);
-        eventSelectionLabel = new Label("Select an event");
-        eventSelectionLabel.getStyleClass().add("section-title");
-        VBox right = new VBox(12, eventSelectionLabel);
-        right.setPadding(new Insets(18));
-        right.getStyleClass().add("detail-pane");
-        SplitPane split = new SplitPane(left, right);
+        eventDetail = new EventDetailPane(api, currentUser, this::showFeedback,
+                result -> balanceLabel.setText("Balance: "
+                        + money(result.account().balance())));
+        SplitPane split = new SplitPane(left, eventDetail);
         split.setDividerPositions(0.54);
         return split;
     }
@@ -273,16 +276,28 @@ public final class MarketClientApplication extends Application {
                 List<EventView> nextEvents = api.events();
                 List<UserView> nextUsers = api.users();
                 UserDetailsView account = api.account();
+                int detailId = eventDetail.selectedId();
+                EventDetailsView detail = detailId == 0 ? null : api.event(detailId);
                 Platform.runLater(() -> {
-                    Integer selectedId = eventTable.getSelectionModel().getSelectedItem() == null
-                            ? null : eventTable.getSelectionModel().getSelectedItem().eventId();
-                    events.setAll(nextEvents);
+                    int selectedId = eventDetail.selectedId();
+                    if (!events.equals(nextEvents)) {
+                        replacingEvents = true;
+                        try {
+                            events.setAll(nextEvents);
+                            if (selectedId != 0) {
+                                filteredEvents.stream()
+                                        .filter(event -> event.eventId() == selectedId)
+                                        .findFirst().ifPresent(event ->
+                                                eventTable.getSelectionModel().select(event));
+                            }
+                        } finally {
+                            replacingEvents = false;
+                        }
+                    }
                     users.setAll(nextUsers);
                     balanceLabel.setText("Balance: " + money(account.balance()));
-                    if (selectedId != null) {
-                        filteredEvents.stream().filter(event -> event.eventId() == selectedId)
-                                .findFirst().ifPresent(event ->
-                                        eventTable.getSelectionModel().select(event));
+                    if (detail != null) {
+                        eventDetail.update(detail);
                     }
                 });
             } catch (Exception exception) {
@@ -359,7 +374,7 @@ public final class MarketClientApplication extends Application {
         feedback.setVisible(true);
     }
 
-    private static String message(Throwable failure) {
+    static String message(Throwable failure) {
         if (failure instanceof ApiException apiFailure) {
             return apiFailure.getMessage();
         }
@@ -376,7 +391,7 @@ public final class MarketClientApplication extends Application {
                 .toExternalForm());
     }
 
-    private static <T> void runAsync(Callable<T> work, Consumer<T> success,
+    static <T> void runAsync(Callable<T> work, Consumer<T> success,
                                      Consumer<Throwable> failure) {
         Task<T> task = new Task<>() {
             @Override

@@ -948,3 +948,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` passed 3 tests with no failures. `mvn javafx:run` launched and remained running without external `JAVA_TOOL_OPTIONS`; it was stopped after validation. A desktop screenshot could not be captured in this execution environment (`CopyFromScreen` reported an invalid handle), so visual inspection remains a manual follow-up.
 - Implementation result: Login and core workspace lists/forms are implemented; detailed event trading controls and account history/positions still require further stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 13: Event Details and Trading
+
+- Goal: Show complete event state and enable authorized open, trade, order, and close actions from the JavaFX client.
+- Rationale: Event lists alone cannot support the method-specific trading workflows required by Assignment 3.
+- Design decision: A dedicated event pane renders LMSR prices/holdings or Order Book bids, asks, orders, executions, trades, and participants from Protocol DTOs. Controls are shown according to event state, mechanism, and current user's market-maker role. All actions use the asynchronous HTTP client, capture form values on the JavaFX thread, and refresh event/account state after success. Event selection is retained across periodic list refreshes.
+- Changed files: `EventDetailPane.java`, `MarketClientApplication.java`, client stylesheet, `EventDetailPaneTest.java`, and this decision log.
+- Validation result: Client `clean package` passed 4 tests, including a JavaFX visibility regression for not-started, active LMSR, and active Order Book events under market-maker and non-market-maker accounts. The prior launcher smoke test remains valid; an end-to-end visual check still needs a desktop session.
+- Implementation result: The client now exposes event detail and method-specific market actions without referencing Engine classes.
+- Commit ID: This milestone commit; hash to be recorded in the final stage index.

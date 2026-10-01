@@ -82,3 +82,13 @@
     -fx-background-color: #ffffff;
     -fx-border-color: #d9e0e7;
 }
+
+.detail-scroll {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent;
+}
+
+.event-state {
+    -fx-text-fill: #1d6b45;
+    -fx-font-weight: bold;
+}
