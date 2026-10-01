@@ -1134,3 +1134,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Full Assignment 3 packaging passed 364 tests with zero failures or errors. The ZIP contains exactly one WAR and a client batch. The packaged Word README still begins with the Chat bonus and contains the two-window usage guide, with no unfilled submitter placeholders. The local Tomcat health endpoint returned 200; no server redeployment was needed for this client-only change.
 - Implementation result: On a 150% scaled display the initial JavaFX content is approximately 847-by-523 logical pixels, producing a physical window close to the supplied screenshot; smaller displays receive a bounded initial size. Resizing and moving remain available, and login no longer enlarges the window.
 - Commit ID: This window-sizing commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 27: Clean State and Final Submission Audit
+
+- Goal: Leave the local server free of test chat and verify the Assignment 3 ZIP against the lecturer's hand-in requirements before source publication.
+- Rationale: Chat and accounts live only in Tomcat memory, so a fresh deployment gives the grader a clean state. The submitter confirmed the packaged client's new size and interaction behavior.
+- Design decision: Redeploy the same packaged `Server.war` to clear test state; use a temporary login to confirm the new chat is empty, then redeploy again to remove that temporary user. Audit the nested ZIP and Word README without adding unnecessary files to the hand-in.
+- Changed files: Assignment 3 requirement checklist and this decision log; the local Tomcat WAR is a generated deployment artifact, not tracked source.
+- Validation result: The fresh chat returned `[]`; a final redeployment recreated the application directory and returned HTTP 200 with `systemLoaded:false`. The deployed WAR hash matches the packaged WAR. The ZIP contains exactly one WAR with Engine, Protocol, Gson, and Chat classes, plus the client batch and nine runtime JARs. The Word README starts with the Chat bonus, includes the class and operating guides, solo submitter fields, and GitHub link, with no placeholders. All 364 module tests have zero failures and errors.
+- Implementation result: The local test chat and users are cleared, and the ZIP is ready for final GitHub synchronization and course upload.
+- Commit ID: This final-audit commit; hash to be reported in the completion summary.
