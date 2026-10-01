@@ -6,9 +6,6 @@
     <listener>
         <listener-class>guessmarket.server.EngineContextListener</listener-class>
     </listener>
-    <listener>
-        <listener-class>guessmarket.server.SessionLifecycleListener</listener-class>
-    </listener>
     <servlet>
         <servlet-name>health</servlet-name>
         <servlet-class>guessmarket.server.HealthServlet</servlet-class>
@@ -24,14 +21,6 @@
     <servlet-mapping>
         <servlet-name>login</servlet-name>
         <url-pattern>/api/login</url-pattern>
-    </servlet-mapping>
-    <servlet>
-        <servlet-name>resume</servlet-name>
-        <servlet-class>guessmarket.server.ResumeServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>resume</servlet-name>
-        <url-pattern>/api/session/resume</url-pattern>
     </servlet-mapping>
     <servlet>
         <servlet-name>logout</servlet-name>

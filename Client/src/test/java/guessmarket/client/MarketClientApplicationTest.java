@@ -24,4 +24,12 @@ class MarketClientApplicationTest {
 
         assertEquals("Name is already in use.", message);
     }
+
+    @Test
+    void duplicateLoginTellsTheUserHowToRetry() {
+        String message = MarketClientApplication.loginMessage(
+                new ApiException(409, "DUPLICATE_USER_NAME", "Duplicate user name: Alice."));
+
+        assertEquals("That user name is already in use. Try another name.", message);
+    }
 }

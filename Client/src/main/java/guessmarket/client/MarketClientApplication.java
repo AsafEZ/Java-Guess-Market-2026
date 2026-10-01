@@ -106,15 +106,6 @@ public final class MarketClientApplication extends Application {
         name.setMaxWidth(320);
         Button signIn = new Button("Sign in");
         signIn.getStyleClass().add("primary-button");
-        ComboBox<String> savedUser = new ComboBox<>(
-                FXCollections.observableArrayList(api.savedUsers()));
-        savedUser.setPromptText("Previous user");
-        savedUser.setMaxWidth(320);
-        Button resume = new Button("Continue previous session");
-        resume.setDisable(savedUser.getItems().isEmpty());
-        if (!savedUser.getItems().isEmpty()) {
-            savedUser.getSelectionModel().selectFirst();
-        }
         Label error = new Label();
         error.getStyleClass().add("error-text");
         error.setWrapText(true);
@@ -131,24 +122,11 @@ public final class MarketClientApplication extends Application {
                 signedIn(user);
             }, failure -> {
                 signIn.setDisable(false);
-                error.setText(message(failure));
-            });
-        });
-        resume.setOnAction(ignored -> {
-            String selected = savedUser.getValue();
-            if (selected == null) {
-                return;
-            }
-            resume.setDisable(true);
-            error.setText("");
-            runAsync(() -> api.resume(selected), this::signedIn, failure -> {
-                resume.setDisable(false);
-                error.setText(message(failure));
+                error.setText(loginMessage(failure));
             });
         });
         name.setOnAction(ignored -> signIn.fire());
-        VBox form = new VBox(14, title, subtitle, name, signIn,
-                savedUser, resume, error);
+        VBox form = new VBox(14, title, subtitle, name, signIn, error);
         form.setAlignment(Pos.CENTER_LEFT);
         form.setPadding(new Insets(28));
         form.setMaxSize(420, 390);
@@ -166,9 +144,6 @@ public final class MarketClientApplication extends Application {
         currentUser = user.name();
         showWorkspace();
         startPolling();
-        if (api.connectionWarning() != null) {
-            showFeedback(api.connectionWarning(), true);
-        }
     }
 
     private void showWorkspace() {
@@ -410,6 +385,14 @@ public final class MarketClientApplication extends Application {
             }
         }
         return failure.getMessage() == null ? "The request failed." : failure.getMessage();
+    }
+
+    static String loginMessage(Throwable failure) {
+        if (failure instanceof ApiException apiFailure
+                && "DUPLICATE_USER_NAME".equals(apiFailure.errorCode())) {
+            return "That user name is already in use. Try another name.";
+        }
+        return message(failure);
     }
 
     private static String money(double value) {

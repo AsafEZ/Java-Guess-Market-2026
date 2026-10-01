@@ -14,8 +14,24 @@ if (-not (Test-Path -LiteralPath $Maven)) {
 }
 
 function Invoke-Build([string]$module, [string]$goal) {
+    $goals = @('clean', $goal)
+    if ($module -eq 'Server') {
+        $serverTarget = [IO.Path]::GetFullPath((Join-Path $repo 'Server\target'))
+        foreach ($name in @('classes', 'test-classes', 'maven-status',
+                'surefire-reports', 'Server-1.0-SNAPSHOT', 'Server-1.0-SNAPSHOT.war')) {
+            $output = [IO.Path]::GetFullPath((Join-Path $serverTarget $name))
+            if (-not $output.StartsWith($serverTarget + [IO.Path]::DirectorySeparatorChar,
+                    [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'Server build output must remain inside Server/target.'
+            }
+            if (Test-Path -LiteralPath $output) {
+                Remove-Item -LiteralPath $output -Recurse -Force
+            }
+        }
+        $goals = @($goal)
+    }
     & $Maven -q -f (Join-Path $repo "$module\pom.xml") `
-        "-Dmaven.repo.local=$env:USERPROFILE\.m2\repository" $goal
+        "-Dmaven.repo.local=$env:USERPROFILE\.m2\repository" @goals
     if ($LASTEXITCODE -ne 0) {
         throw "$module Maven $goal failed."
     }

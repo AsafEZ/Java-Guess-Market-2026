@@ -27,11 +27,6 @@ final class HttpApi {
         return engine instanceof Assignment3Engine assignment3 ? assignment3 : null;
     }
 
-    static ResumeSessions resumeSessions(ServletContext context) {
-        Object attribute = context.getAttribute(ResumeSessions.CONTEXT_ATTRIBUTE);
-        return attribute instanceof ResumeSessions sessions ? sessions : null;
-    }
-
     static ChatRoom chatRoom(ServletContext context) {
         Object attribute = context.getAttribute(ChatRoom.CONTEXT_ATTRIBUTE);
         return attribute instanceof ChatRoom room ? room : null;
