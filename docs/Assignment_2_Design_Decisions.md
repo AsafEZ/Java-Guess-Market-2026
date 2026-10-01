@@ -1040,3 +1040,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` passed all 7 tests, including connection-refusal guidance and preservation of an HTTP conflict message. The already deployed Tomcat health endpoint returned 200 after the change.
 - Implementation result: The client now distinguishes a stopped/unreachable server from a rejected user name and tells the user which server URL to start.
 - Commit ID: This milestone commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 18: Private Submitter Details in Hand-In
+
+- Goal: Complete the solo submission README without publishing personal identification details in the source repository.
+- Rationale: The grader requires name, ID, and email in the Word README, but the GitHub repository does not need to expose those values publicly.
+- Design decision: The packaging script reads a structured local JSON file ignored by Git, validates required submitter and optional partner fields, and replaces README template placeholders only in the generated DOCX. The source README keeps placeholders and its GitHub link; the outdated feature-branch instruction was removed before the planned main-branch merge.
+- Changed files: `.gitignore`, `scripts/package-assignment3.ps1`, `docs/Assignment_3_Readme.md`, `docs/Assignment_3_Requirement_Checklist.md`, and this decision log. The ignored local submitter file is intentionally excluded from the commit.
+- Validation result: The full package script passed Protocol, Engine, Server, and all 7 Client tests. Nested ZIP/DOCX inspection confirmed the solo submitter details, zero unfilled placeholders, and exactly one WAR. `git check-ignore` confirmed the personal JSON is excluded.
+- Implementation result: The local submission ZIP contains complete submitter details; tracked source files contain none of the personal values.
+- Commit ID: This milestone commit; hash to be reported in the completion summary.

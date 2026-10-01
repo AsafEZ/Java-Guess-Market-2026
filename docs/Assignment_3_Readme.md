@@ -8,7 +8,6 @@ Email: [ADD CONTACT EMAIL]
 Partner (if applicable): [ADD NAME, ID AND EMAIL]
 
 Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
-Branch: feature/trading-mechanism (ensure this branch is pushed before submission).
 
 ## Requirements and startup
 

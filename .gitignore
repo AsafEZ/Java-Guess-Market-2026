@@ -51,3 +51,6 @@ out/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Personal hand-in details stay out of the source repository.
+docs/Assignment_3_Submitter.local.json

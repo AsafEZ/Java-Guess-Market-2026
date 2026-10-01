@@ -60,7 +60,36 @@ function Escape-Xml([string]$value) {
     return [System.Security.SecurityElement]::Escape($value)
 }
 
-$readme = Get-Content -LiteralPath (Join-Path $repo 'docs\Assignment_3_Readme.md')
+$submitterFile = Join-Path $repo 'docs\Assignment_3_Submitter.local.json'
+if (-not (Test-Path -LiteralPath $submitterFile)) {
+    throw 'Create docs/Assignment_3_Submitter.local.json before packaging the hand-in.'
+}
+$submitter = Get-Content -LiteralPath $submitterFile -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($submitter.name) -or
+        $submitter.id -notmatch '^\d{9}$' -or
+        [string]::IsNullOrWhiteSpace($submitter.email)) {
+    throw 'Submitter name, nine-digit ID, and email are required.'
+}
+if ($submitter.solo) {
+    $partner = 'Partner: none (solo submission)'
+} elseif (-not [string]::IsNullOrWhiteSpace($submitter.partnerName) -and
+        $submitter.partnerId -match '^\d{9}$' -and
+        -not [string]::IsNullOrWhiteSpace($submitter.partnerEmail)) {
+    $partner = "Partner: $($submitter.partnerName), $($submitter.partnerId), $($submitter.partnerEmail)"
+} else {
+    throw 'Partner details are required for a joint submission.'
+}
+$readmeSource = Get-Content -LiteralPath (Join-Path $repo 'docs\Assignment_3_Readme.md') `
+    -Raw -Encoding UTF8
+$readmeSource = $readmeSource.Replace('[ADD FULL NAME]', $submitter.name)
+$readmeSource = $readmeSource.Replace('[ADD ID NUMBER]', $submitter.id)
+$readmeSource = $readmeSource.Replace('[ADD CONTACT EMAIL]', $submitter.email)
+$readmeSource = $readmeSource.Replace('Partner (if applicable): [ADD NAME, ID AND EMAIL]',
+    $partner)
+if ($readmeSource.Contains('[ADD ')) {
+    throw 'The hand-in README still contains an unfilled submitter field.'
+}
+$readme = $readmeSource -split '\r?\n'
 $paragraphs = [Text.StringBuilder]::new()
 foreach ($line in $readme) {
     $style = ''
