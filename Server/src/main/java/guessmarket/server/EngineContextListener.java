@@ -12,10 +12,13 @@ public final class EngineContextListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent event) {
         event.getServletContext().setAttribute(
                 ENGINE_ATTRIBUTE, EngineFactory.createAssignment3Engine());
+        event.getServletContext().setAttribute(
+                ResumeSessions.CONTEXT_ATTRIBUTE, new ResumeSessions());
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
         event.getServletContext().removeAttribute(ENGINE_ATTRIBUTE);
+        event.getServletContext().removeAttribute(ResumeSessions.CONTEXT_ATTRIBUTE);
     }
 }

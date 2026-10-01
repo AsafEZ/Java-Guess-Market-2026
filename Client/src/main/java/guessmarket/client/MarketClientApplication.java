@@ -82,6 +82,15 @@ public final class MarketClientApplication extends Application {
     @Override
     public void stop() {
         poller.shutdownNow();
+        if (currentUser != null) {
+            try {
+                api.logout();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } catch (Exception ignored) {
+                // Tomcat expires an abandoned session if the client cannot disconnect.
+            }
+        }
     }
 
     private void showLogin() {
@@ -94,6 +103,15 @@ public final class MarketClientApplication extends Application {
         name.setMaxWidth(320);
         Button signIn = new Button("Sign in");
         signIn.getStyleClass().add("primary-button");
+        ComboBox<String> savedUser = new ComboBox<>(
+                FXCollections.observableArrayList(api.savedUsers()));
+        savedUser.setPromptText("Previous user");
+        savedUser.setMaxWidth(320);
+        Button resume = new Button("Continue previous session");
+        resume.setDisable(savedUser.getItems().isEmpty());
+        if (!savedUser.getItems().isEmpty()) {
+            savedUser.getSelectionModel().selectFirst();
+        }
         Label error = new Label();
         error.getStyleClass().add("error-text");
         error.setWrapText(true);
@@ -107,16 +125,27 @@ public final class MarketClientApplication extends Application {
             signIn.setDisable(true);
             error.setText("");
             runAsync(() -> api.login(entered), user -> {
-                currentUser = user.name();
-                showWorkspace();
-                startPolling();
+                signedIn(user);
             }, failure -> {
                 signIn.setDisable(false);
                 error.setText(message(failure));
             });
         });
+        resume.setOnAction(ignored -> {
+            String selected = savedUser.getValue();
+            if (selected == null) {
+                return;
+            }
+            resume.setDisable(true);
+            error.setText("");
+            runAsync(() -> api.resume(selected), this::signedIn, failure -> {
+                resume.setDisable(false);
+                error.setText(message(failure));
+            });
+        });
         name.setOnAction(ignored -> signIn.fire());
-        VBox form = new VBox(14, title, subtitle, name, signIn, error);
+        VBox form = new VBox(14, title, subtitle, name, signIn,
+                savedUser, resume, error);
         form.setAlignment(Pos.CENTER_LEFT);
         form.setPadding(new Insets(28));
         form.setMaxSize(420, 290);
@@ -128,6 +157,15 @@ public final class MarketClientApplication extends Application {
         addStyles(scene);
         stage.setScene(scene);
         Platform.runLater(name::requestFocus);
+    }
+
+    private void signedIn(UserView user) {
+        currentUser = user.name();
+        showWorkspace();
+        startPolling();
+        if (api.connectionWarning() != null) {
+            showFeedback(api.connectionWarning(), true);
+        }
     }
 
     private void showWorkspace() {

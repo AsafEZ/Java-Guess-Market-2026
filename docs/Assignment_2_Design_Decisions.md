@@ -1084,3 +1084,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The full Assignment 3 packaging script completed successfully, including module compilation and tests. The generated ZIP contains exactly one WAR and a parseable Word README. The Word document contains the new class guide and real `EngineContextListener` name, with no `ApplicationContext` reference or unfilled template marker. `git diff --check` passed.
 - Implementation result: The submission README now documents principal new classes across Engine, server, Protocol, and JavaFX client, plus their request flow; the submission checklist reflects this coverage.
 - Commit ID: This documentation commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 22: Token-Backed Account Reconnection
+
+- Goal: Let a returning desktop client reopen its existing user account without creating a duplicate user or changing the normal unique-name login rule.
+- Rationale: The user requested a separate reconnect action after closing the JavaFX window; normal login by an existing name must still return a conflict, and accounts remain private.
+- Design decision: The server issues a cryptographically random token at first login and keeps its token-to-user mapping in the Tomcat application context. The desktop client saves one token per user under the Windows user home. A reconnect is accepted only when the prior HTTP session is no longer active; graceful JavaFX shutdown calls logout, and Tomcat session expiration handles abandoned clients. No password or sign-up flow is added, and all account data remains in the Engine's server memory.
+- Changed files: Server login/session servlets and listeners, client HTTP/session storage and login screen, focused tests, Assignment 3 README/checklist, and this decision log.
+- Validation result: Full Assignment 3 packaging completed; Protocol, Engine, Server, and Client compilation/tests passed. Server token tests covered active-session conflict, unknown token, and reconnect after session end. Client HTTP tests covered token persistence, second-process reconnect, and logout cookie. Live Tomcat redeployment is deferred because the user currently has in-memory data in the running server.
+- Implementation result: A `Continue previous session` action can restore a saved user's server-side account; normal `Sign in` remains a unique-name registration path. An abrupt client exit requires waiting for the Tomcat session timeout before reconnecting.
+- Commit ID: This reconnect commit; hash to be reported in the completion summary.

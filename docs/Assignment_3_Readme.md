@@ -19,7 +19,8 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 
 ## Workflow
 
-- Sign in with a unique user name. An existing logged-in name is rejected; the user may retry with another name. There are no passwords or registration screens.
+- Sign in with a unique user name. An existing name is rejected; the user may retry with another name. There are no passwords or registration screens.
+- To return to an existing account on the same Windows profile, choose its name under `Previous user` and click `Continue previous session`. The server issues an unguessable reconnect token at first login; the client stores it under the user's home directory, and the server keeps its copy only in memory. Ordinary `Sign in` still rejects an existing name. A second connection is refused while the earlier session is active; closing the JavaFX window releases it. After an abnormal exit, wait for Tomcat's session timeout. Restarting Tomcat invalidates saved reconnect tokens along with all accounts and events.
 - Any logged-in user may choose and upload a v3 XML file. A successful upload adds its events to the current system and makes the uploader their market maker. Invalid or duplicate event files produce an error and add nothing. The server parses the request stream and does not save the XML file.
 - The Events screen filters by mechanism, state, and commission type. Select an event to inspect prices or order book, executions, trades, and participants. The market maker may open and close it; active LMSR events allow share purchases, and active Order Book events allow buy/sell limit orders.
 - The Account screen shows other users' names, balances, and market-maker indicators. The private pane shows your own balance, fund deposit, positions, option holdings, trades, and activity ledger. These views refresh about once per second.
@@ -44,6 +45,7 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - Server / `EngineContextListener`: creates the single shared Engine at Tomcat application startup, stores it in the servlet context, and removes it when the application stops.
 - Server / `HttpApi`: shared servlet helper for finding the Engine and session user, and writing UTF-8 JSON success or error responses.
 - Server / `LoginServlet`: registers a unique user name, stores it in the HTTP session, and reports a conflict when the name is already in use.
+- Server / `ResumeSessions`, `ResumeServlet`, `LogoutServlet`, and `SessionLifecycleListener`: issue and validate in-memory reconnect tokens, bind a returning client to the existing account only after its prior session ends, and release active connections on logout or session expiration. The Engine still owns the account and its balance.
 - Server / `EventUploadServlet`: accepts an authenticated user's raw XML request stream, asks the Engine to append its events, and returns upload counts or validation errors; it does not save the uploaded file.
 - Server / `EventsServlet` and `EventDetailsServlet`: expose the shared event list and one selected event's method-specific prices, orders, trades, executions, and participants.
 - Server / `UsersServlet`: exposes each user's public name, balance, and market-maker indicator without exposing private positions or history.
@@ -53,6 +55,7 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - Protocol / `EventView`, `EventDetailsView`, `UserView`, `UserDetailsView`, `AccountActivityView`, `UploadView`, `ActionResultView`, and `ErrorView`: principal data-only wire records shared by server and client. Related option, order, execution, trade, and position records carry nested display data without UI or Engine implementation types.
 - Client / `ClientLauncher`: sets the Windows-specific JDK loopback workaround before starting the JavaFX application.
 - Client / `MarketApiClient`: sends HTTP requests to the built-in `localhost:8080/Server/api/` URL, keeps the session cookie, and converts JSON responses into Protocol DTOs.
+- Client / `SavedConnections`: keeps one server-issued reconnect token per previously used name in the current Windows user's home directory. It does not store balances or passwords.
 - Client / `ApiException`: preserves HTTP status, server error code, and message so the UI can show an actionable failure.
 - Client / `MarketClientApplication`: owns login, Events/Account navigation, XML file choice, public lists and filters, background network tasks, and one-second server polling.
 - Client / `EventDetailPane`: renders an event's method-specific data and enables only actions allowed by its state, mechanism, and the current user's market-maker role.

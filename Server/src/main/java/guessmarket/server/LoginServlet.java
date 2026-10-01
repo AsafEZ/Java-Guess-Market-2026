@@ -55,6 +55,8 @@ public final class LoginServlet extends HttpServlet {
         try {
             UserSummary user = engine.registerUser(userName);
             session.setAttribute(USER_NAME_ATTRIBUTE, user.name());
+            response.setHeader("X-Resume-Token",
+                    HttpApi.resumeSessions(getServletContext()).register(user.name(), session));
             HttpApi.writeJson(response, HttpServletResponse.SC_OK,
                     ViewMapper.user(user, Set.of()));
         } catch (EngineException exception) {

@@ -31,16 +31,24 @@ public final class MarketApiClient {
     private final Gson gson = new Gson();
     private final URI base;
     private final HttpClient http;
+    private final SavedConnections savedConnections;
+    private volatile String connectionWarning;
 
     public MarketApiClient() {
         this(DEFAULT_BASE);
     }
 
     public MarketApiClient(URI base) {
+        this(base, Path.of(System.getProperty("user.home"),
+                ".guess-market", "connections"));
+    }
+
+    MarketApiClient(URI base, Path connectionsDirectory) {
         if (!base.toString().endsWith("/")) {
             throw new IllegalArgumentException("API base URI must end with '/'.");
         }
         this.base = base;
+        this.savedConnections = new SavedConnections(connectionsDirectory);
         this.http = HttpClient.newBuilder()
                 .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .connectTimeout(Duration.ofSeconds(5))
@@ -48,7 +56,52 @@ public final class MarketApiClient {
     }
 
     public UserView login(String userName) throws IOException, InterruptedException {
-        return post("login", Map.of("userName", userName), UserView.class);
+        HttpResponse<String> response = sendRaw(jsonPost("login", Map.of("userName", userName)));
+        UserView user = decode(response, UserView.class);
+        String token = response.headers().firstValue("X-Resume-Token").orElse(null);
+        if (token == null) {
+            connectionWarning = "Signed in, but this server does not support reconnecting yet.";
+            return user;
+        }
+        try {
+            savedConnections.save(user.name(), token);
+            connectionWarning = null;
+        } catch (IOException exception) {
+            connectionWarning = "Signed in, but this computer could not save a reconnect token.";
+        }
+        return user;
+    }
+
+    public String connectionWarning() {
+        return connectionWarning;
+    }
+
+    public List<String> savedUsers() {
+        return savedConnections.userNames();
+    }
+
+    public UserView resume(String userName) throws IOException, InterruptedException {
+        String token = savedConnections.token(userName);
+        HttpRequest request = request("session/resume")
+                .header("X-Resume-Token", token)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        try {
+            return send(request, UserView.class);
+        } catch (ApiException exception) {
+            if (exception.status() == 401) {
+                savedConnections.forget(userName);
+            }
+            throw exception;
+        }
+    }
+
+    public void logout() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(base.resolve("session/logout"))
+                .timeout(Duration.ofSeconds(3))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        sendRaw(request);
     }
 
     public UserView session() throws IOException, InterruptedException {
@@ -119,12 +172,15 @@ public final class MarketApiClient {
 
     private <T> T post(String path, Object body, java.lang.reflect.Type type)
             throws IOException, InterruptedException {
-        HttpRequest request = request(path)
+        return send(jsonPost(path, body), type);
+    }
+
+    private HttpRequest jsonPost(String path, Object body) {
+        return request(path)
                 .header("Content-Type", "application/json; charset=UTF-8")
                 .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(body),
                         StandardCharsets.UTF_8))
                 .build();
-        return send(request, type);
     }
 
     private HttpRequest.Builder request(String path) {
@@ -134,6 +190,11 @@ public final class MarketApiClient {
     }
 
     private <T> T send(HttpRequest request, java.lang.reflect.Type type)
+            throws IOException, InterruptedException {
+        return decode(sendRaw(request), type);
+    }
+
+    private HttpResponse<String> sendRaw(HttpRequest request)
             throws IOException, InterruptedException {
         HttpResponse<String> response = http.send(request,
                 HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -150,6 +211,11 @@ public final class MarketApiClient {
                     error != null && error.message() != null
                             ? error.message() : "Server returned HTTP " + response.statusCode());
         }
+        return response;
+    }
+
+    private <T> T decode(HttpResponse<String> response, java.lang.reflect.Type type)
+            throws IOException {
         try {
             return gson.fromJson(response.body(), type);
         } catch (JsonParseException exception) {

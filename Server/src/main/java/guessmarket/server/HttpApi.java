@@ -27,6 +27,11 @@ final class HttpApi {
         return engine instanceof Assignment3Engine assignment3 ? assignment3 : null;
     }
 
+    static ResumeSessions resumeSessions(ServletContext context) {
+        Object attribute = context.getAttribute(ResumeSessions.CONTEXT_ATTRIBUTE);
+        return attribute instanceof ResumeSessions sessions ? sessions : null;
+    }
+
     static String sessionUserName(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {
