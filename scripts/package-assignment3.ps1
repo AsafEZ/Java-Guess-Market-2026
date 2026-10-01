@@ -133,7 +133,12 @@ $warFiles = @(Get-ChildItem -LiteralPath $target -Recurse -Filter '*.war')
 if ($warFiles.Count -ne 1) {
     throw "Expected exactly one WAR, found $($warFiles.Count)."
 }
-$zip = Join-Path $repo 'target\Assignment3.zip'
+$submissionIds = @($submitter.id)
+if (-not $submitter.solo) {
+    $submissionIds += $submitter.partnerId
+}
+$zip = Join-Path (Join-Path $repo 'target') `
+    ('Assignment3_' + ($submissionIds -join '_') + '.zip')
 if (Test-Path -LiteralPath $zip) {
     Remove-Item -LiteralPath $zip -Force
 }

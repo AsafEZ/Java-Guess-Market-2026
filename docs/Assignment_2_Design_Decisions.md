@@ -1144,3 +1144,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The fresh chat returned `[]`; a final redeployment recreated the application directory and returned HTTP 200 with `systemLoaded:false`. The deployed WAR hash matches the packaged WAR. The ZIP contains exactly one WAR with Engine, Protocol, Gson, and Chat classes, plus the client batch and nine runtime JARs. The Word README starts with the Chat bonus, includes the class and operating guides, solo submitter fields, and GitHub link, with no placeholders. All 364 module tests have zero failures and errors.
 - Implementation result: The local test chat and users are cleared, and the ZIP is ready for final GitHub synchronization and course upload.
 - Commit ID: This final-audit commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 28: Latest Hand-In File Name
+
+- Goal: Match the lecturer's latest hand-in clarification that the single submitted archive's file name contains every submitter's ID number.
+- Rationale: The prior `Assignment3.zip` contained the correct files but did not include the solo submitter's ID in its name.
+- Design decision: Derive the ZIP name from the existing Git-ignored submitter JSON, appending both IDs for a joint submission and only the solo ID here. Keep personal values out of tracked source. Retain one WAR, the client directory with its batch and JARs, and the DOCX README; remove the obsolete ambiguously named ZIP only after the corrected archive passes inspection.
+- Changed files: `scripts/package-assignment3.ps1`, `docs/Assignment_3_Requirement_Checklist.md`, and this decision log. Generated ZIP cleanup is not tracked.
+- Validation result: Full packaging passed 364 tests with zero failures or errors. The ID-bearing ZIP contains exactly one WAR, `Client/Client.jar`, nine client runtime JARs, `Client/run-client.bat`, and `README.docx`. Its first README line names the Chat bonus; it contains the solo name, ID, current email, GitHub link, user guide, chat guide, and class guide, with no placeholders. The old `Assignment3.zip` was removed after these checks.
+- Implementation result: The workspace now has one unambiguous, correctly named Assignment 3 ZIP for course upload.
+- Commit ID: This hand-in naming commit; hash to be reported in the completion summary.
