@@ -36,6 +36,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -51,6 +52,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class MarketClientApplication extends Application {
+    private static final double INITIAL_CONTENT_WIDTH_PX = 1270;
+    private static final double INITIAL_CONTENT_HEIGHT_PX = 785;
+
     private final MarketApiClient api = new MarketApiClient();
     private final ObservableList<EventView> events = FXCollections.observableArrayList();
     private final ObservableList<UserView> users = FXCollections.observableArrayList();
@@ -80,6 +84,7 @@ public final class MarketClientApplication extends Application {
         stage.setMinHeight(500);
         showLogin();
         stage.show();
+        stage.centerOnScreen();
     }
 
     @Override
@@ -134,7 +139,12 @@ public final class MarketClientApplication extends Application {
         BorderPane root = new BorderPane(form);
         root.getStyleClass().add("app-root");
         BorderPane.setAlignment(form, Pos.CENTER);
-        Scene scene = new Scene(root, 1100, 760);
+        Screen screen = Screen.getPrimary();
+        Scene scene = new Scene(root,
+                initialSceneSize(INITIAL_CONTENT_WIDTH_PX, screen.getOutputScaleX(),
+                        screen.getVisualBounds().getWidth()),
+                initialSceneSize(INITIAL_CONTENT_HEIGHT_PX, screen.getOutputScaleY(),
+                        screen.getVisualBounds().getHeight()));
         addStyles(scene);
         stage.setScene(scene);
         Platform.runLater(name::requestFocus);
@@ -158,8 +168,8 @@ public final class MarketClientApplication extends Application {
         chatPane = new ChatPane(api, this::showFeedback);
         tabs.getTabs().add(new Tab("Chat", chatPane));
         root.setCenter(tabs);
-        Scene scene = new Scene(root, Math.max(stage.getWidth(), 900),
-                Math.max(stage.getHeight(), 620));
+        Scene current = stage.getScene();
+        Scene scene = new Scene(root, current.getWidth(), current.getHeight());
         addStyles(scene);
         scene.widthProperty().addListener((ignored, oldValue, width) -> {
             for (Tab tab : tabs.getTabs()) {
@@ -393,6 +403,11 @@ public final class MarketClientApplication extends Application {
             return "That user name is already in use. Try another name.";
         }
         return message(failure);
+    }
+
+    static double initialSceneSize(double physicalPixels, double outputScale,
+                                   double visualSize) {
+        return Math.min(physicalPixels / outputScale, Math.max(1, visualSize - 40));
     }
 
     private static String money(double value) {

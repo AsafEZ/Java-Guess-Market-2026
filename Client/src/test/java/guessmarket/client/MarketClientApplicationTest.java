@@ -32,4 +32,14 @@ class MarketClientApplicationTest {
 
         assertEquals("That user name is already in use. Try another name.", message);
     }
+
+    @Test
+    void initialWindowUsesPhysicalPixelsAndFitsSmallerScreens() {
+        assertEquals(1270.0 / 1.5,
+                MarketClientApplication.initialSceneSize(1270, 1.5, 1280), 0.01);
+        assertEquals(785.0 / 1.5,
+                MarketClientApplication.initialSceneSize(785, 1.5, 720), 0.01);
+        assertEquals(920,
+                MarketClientApplication.initialSceneSize(1270, 1, 960), 0.01);
+    }
 }

@@ -1124,3 +1124,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Full packaging build passed 363 tests with zero failures or errors. The ZIP has exactly one WAR, the client batch, and a parseable Word README with the bonus named first, the two-user guide, solo submitter details, and no placeholders. The final WAR was deployed to the local Tomcat on port 8080; two authenticated users both saw both posted messages in order, `after=1` returned only the second message, duplicate login returned 409, unauthenticated chat returned 401, and a blank message returned 400.
 - Implementation result: The hand-in README now contains a complete Chat operating and verification procedure.
 - Commit ID: This documentation commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 26: Screenshot-Matched Initial Client Window
+
+- Goal: Open the desktop client at approximately the window size shown in the supplied screenshot while preserving move, resize, and the chosen size after login.
+- Rationale: The previous login scene used a fixed 1100-by-760 JavaFX size; on a scaled Windows display, that differs from the screenshot's approximately 1270-by-830 physical-pixel outer window.
+- Design decision: Target 1270-by-785 physical pixels for the initial scene content, convert through JavaFX's output scale, and cap it to the primary screen's visual bounds with a margin. Center the initial window, leave its existing minimum dimensions and normal window controls unchanged, and construct the post-login scene from the current scene dimensions rather than the decorated stage dimensions.
+- Changed files: `MarketClientApplication.java`, its focused size test, and this decision log.
+- Validation result: Full Assignment 3 packaging passed 364 tests with zero failures or errors. The ZIP contains exactly one WAR and a client batch. The packaged Word README still begins with the Chat bonus and contains the two-window usage guide, with no unfilled submitter placeholders. The local Tomcat health endpoint returned 200; no server redeployment was needed for this client-only change.
+- Implementation result: On a 150% scaled display the initial JavaFX content is approximately 847-by-523 logical pixels, producing a physical window close to the supplied screenshot; smaller displays receive a bounded initial size. Resizing and moving remain available, and login no longer enlarges the window.
+- Commit ID: This window-sizing commit; hash to be reported in the completion summary.
