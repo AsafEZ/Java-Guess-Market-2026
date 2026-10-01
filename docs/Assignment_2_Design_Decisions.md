@@ -958,3 +958,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` passed 4 tests, including a JavaFX visibility regression for not-started, active LMSR, and active Order Book events under market-maker and non-market-maker accounts. The prior launcher smoke test remains valid; an end-to-end visual check still needs a desktop session.
 - Implementation result: The client now exposes event detail and method-specific market actions without referencing Engine classes.
 - Commit ID: This milestone commit; hash to be recorded in the final stage index.
+
+## Assignment 3 Stage 14: Private Account Details
+
+- Goal: Show each logged-in user's event positions, option holdings, trades, and chronological financial history in the JavaFX client.
+- Rationale: The HTTP API already exposes private account and history DTOs, but the initial account screen displayed only balance and deposit.
+- Design decision: Keep the public users table separate from the private account pane. The pane has Positions and History tabs; selecting a position reveals its option holdings and trades. The existing one-second poll retrieves `GET /api/account` and `GET /api/account/history` with the session cookie. Deposit stays asynchronous, and its returned balance is shown immediately. Both JavaFX pane tests tolerate an already-started toolkit when run in the same test JVM.
+- Changed files: `AccountDetailPane.java`, `MarketClientApplication.java`, `AccountDetailPaneTest.java`, `EventDetailPaneTest.java`, and this decision log.
+- Validation result: Client `clean package` passed 5 tests with no failures, including the new account pane regression.
+- Implementation result: The client presents private account state without Engine dependencies or server API changes.
+- Commit ID: This milestone commit; hash to be recorded in the final stage index.

@@ -4,6 +4,7 @@ import guessmarket.client.net.ApiException;
 import guessmarket.client.net.MarketApiClient;
 import guessmarket.protocol.EventView;
 import guessmarket.protocol.EventDetailsView;
+import guessmarket.protocol.AccountActivityView;
 import guessmarket.protocol.UserDetailsView;
 import guessmarket.protocol.UserView;
 import javafx.application.Application;
@@ -56,7 +57,7 @@ public final class MarketClientApplication extends Application {
     private Stage stage;
     private String currentUser;
     private Label feedback;
-    private Label balanceLabel;
+    private AccountDetailPane accountDetail;
     private EventDetailPane eventDetail;
     private TableView<EventView> eventTable;
     private ComboBox<String> methodFilter;
@@ -208,8 +209,7 @@ public final class MarketClientApplication extends Application {
         left.getStyleClass().add("master-pane");
         VBox.setVgrow(eventTable, Priority.ALWAYS);
         eventDetail = new EventDetailPane(api, currentUser, this::showFeedback,
-                result -> balanceLabel.setText("Balance: "
-                        + money(result.account().balance())));
+                result -> accountDetail.updateBalance(result.account().balance()));
         SplitPane split = new SplitPane(left, eventDetail);
         split.setDividerPositions(0.54);
         return split;
@@ -229,43 +229,8 @@ public final class MarketClientApplication extends Application {
         left.getStyleClass().add("master-pane");
         VBox.setVgrow(userTable, Priority.ALWAYS);
 
-        Label accountTitle = new Label("My account");
-        accountTitle.getStyleClass().add("section-title");
-        balanceLabel = new Label("Balance: 0.00");
-        balanceLabel.getStyleClass().add("balance-label");
-        TextField amount = new TextField();
-        amount.setPromptText("Amount");
-        amount.setMaxWidth(180);
-        Button deposit = new Button("Add funds");
-        deposit.getStyleClass().add("primary-button");
-        deposit.setOnAction(ignored -> {
-            double value;
-            try {
-                value = Double.parseDouble(amount.getText().trim());
-                if (!Double.isFinite(value) || value <= 0) {
-                    throw new NumberFormatException();
-                }
-            } catch (NumberFormatException exception) {
-                showFeedback("Enter a positive amount.", true);
-                return;
-            }
-            deposit.setDisable(true);
-            runAsync(() -> api.deposit(value), user -> {
-                deposit.setDisable(false);
-                amount.clear();
-                balanceLabel.setText("Balance: " + money(user.balance()));
-                showFeedback("Funds added.", false);
-            }, failure -> {
-                deposit.setDisable(false);
-                showFeedback(message(failure), true);
-            });
-        });
-        HBox depositRow = new HBox(8, amount, deposit);
-        depositRow.setAlignment(Pos.CENTER_LEFT);
-        VBox right = new VBox(14, accountTitle, balanceLabel, depositRow);
-        right.setPadding(new Insets(18));
-        right.getStyleClass().add("detail-pane");
-        SplitPane split = new SplitPane(left, right);
+        accountDetail = new AccountDetailPane(api, this::showFeedback);
+        SplitPane split = new SplitPane(left, accountDetail);
         split.setDividerPositions(0.42);
         return split;
     }
@@ -276,6 +241,7 @@ public final class MarketClientApplication extends Application {
                 List<EventView> nextEvents = api.events();
                 List<UserView> nextUsers = api.users();
                 UserDetailsView account = api.account();
+                List<AccountActivityView> activity = api.history();
                 int detailId = eventDetail.selectedId();
                 EventDetailsView detail = detailId == 0 ? null : api.event(detailId);
                 Platform.runLater(() -> {
@@ -295,7 +261,7 @@ public final class MarketClientApplication extends Application {
                         }
                     }
                     users.setAll(nextUsers);
-                    balanceLabel.setText("Balance: " + money(account.balance()));
+                    accountDetail.update(account, activity);
                     if (detail != null) {
                         eventDetail.update(detail);
                     }

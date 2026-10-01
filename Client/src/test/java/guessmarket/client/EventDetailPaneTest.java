@@ -22,7 +22,11 @@ class EventDetailPaneTest {
     @BeforeAll
     static void startToolkit() throws Exception {
         CountDownLatch ready = new CountDownLatch(1);
-        Platform.startup(ready::countDown);
+        try {
+            Platform.startup(ready::countDown);
+        } catch (IllegalStateException alreadyStarted) {
+            Platform.runLater(ready::countDown);
+        }
         assertTrue(ready.await(10, TimeUnit.SECONDS));
     }
 
