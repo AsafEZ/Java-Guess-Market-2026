@@ -1074,3 +1074,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: `ls-remote` showed both remote branches at `c5ac4b8` after the initial fast-forward. Git reported a clean active branch, and tracked-source search found no submitter ID or email. The final documentation commit will be pushed to both branches as well.
 - Implementation result: Assignment 3 code and the privacy-safe packaging workflow are published on `origin/main`; the submission ZIP remains local for course hand-in.
 - Commit ID: This milestone commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 21: Submission README Class Guide
+
+- Goal: Match the lecturer's requirement for a general yet complete explanation of the principal new classes and their roles in the hand-in README.
+- Rationale: The initial README explained architecture by module but grouped several servlets under one vague description and incorrectly named a nonexistent `ApplicationContext` class.
+- Design decision: Document the actual Engine, server, Protocol, and client classes individually or in closely related endpoint groups, and show the request path across those layers. Correct the context-listener name to `EngineContextListener`; keep personal details injected only into the generated Word file.
+- Changed files: `docs/Assignment_3_Readme.md`, `docs/Assignment_3_Requirement_Checklist.md`, and this decision log.
+- Validation result: The full Assignment 3 packaging script completed successfully, including module compilation and tests. The generated ZIP contains exactly one WAR and a parseable Word README. The Word document contains the new class guide and real `EngineContextListener` name, with no `ApplicationContext` reference or unfilled template marker. `git diff --check` passed.
+- Implementation result: The submission README now documents principal new classes across Engine, server, Protocol, and JavaFX client, plus their request flow; the submission checklist reflects this coverage.
+- Commit ID: This documentation commit; hash to be reported in the completion summary.
