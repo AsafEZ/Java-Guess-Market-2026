@@ -938,3 +938,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` succeeded without `JAVA_TOOL_OPTIONS`; both in-process HTTP tests passed. Tests covered cookie reuse after login, upload body bytes/content type, and preservation of HTTP error status/code/message. The client POM has no Engine dependency.
 - Implementation result: The network layer is implemented; JavaFX screens and submission packaging remain later stages.
 - Commit ID: This milestone commit; the hash is reported in the completion summary.
+
+## Assignment 3 Stage 12: JavaFX Login and Workspace Shell
+
+- Goal: Make the new HTTP-only client usable for login, event/user browsing, XML upload, and account credit with periodic shared-state refresh.
+- Rationale: Assignment 3 requires a separate desktop process that never calls Engine directly, lets any user upload events, and refreshes server state without artificial delays.
+- Design decision: Build the new JavaFX view programmatically, without adding FXML files outside Scene Builder. Reuse Assignment 2's restrained light/teal visual language. The client has a username-only login, Events and Account tabs, event filters, user balances/MM indicators, a file chooser with an asynchronous upload task, and an asynchronous account-credit form. A single background scheduler polls events/users/private account every second and updates JavaFX controls on the application thread. Split panes change orientation at narrow widths. The Windows JDK loopback workaround is set only in the client's own launcher before constructing `HttpClient`; no machine-wide settings are changed.
+- Changed files: JavaFX launcher/application, client stylesheet and resource test, and this decision log.
+- Validation result: Client `clean package` passed 3 tests with no failures. `mvn javafx:run` launched and remained running without external `JAVA_TOOL_OPTIONS`; it was stopped after validation. A desktop screenshot could not be captured in this execution environment (`CopyFromScreen` reported an invalid handle), so visual inspection remains a manual follow-up.
+- Implementation result: Login and core workspace lists/forms are implemented; detailed event trading controls and account history/positions still require further stages.
+- Commit ID: This milestone commit; the hash is reported in the completion summary.
