@@ -20,11 +20,10 @@ Source: `Guess Market - v3.docx`, Assignment 3 section, paragraphs 480-565. The 
 | Reuse prior work where practical (531, 536, 539-541) | Reuses the Assignment 2 Engine and its trading behavior; new HTTP-facing DTO and JavaFX client screens isolate server/client responsibilities. | Dependency inspection confirms separation. Existing Assignment 2 JavaFX controls were not directly reused; this is a recommendation, not a mandatory API contract. |
 | WAR module bundles every runtime dependency (535-536, 557-558) | Server WAR includes Engine, Protocol, Gson and XML/JAXB JARs; Servlet API comes from Tomcat. | Final WAR inspection and packaged-WAR Tomcat deployment passed. |
 | Separate new JavaFX client module (536, 559) | `Client` JAR plus Protocol, Gson and JavaFX runtime JARs in `Client/lib`, started by `run-client.bat`; default URL knows `localhost:8080/Server`. | Packaged batch stayed running in smoke test; ZIP has exactly one WAR and all client JARs. |
-| ZIP and Word/PDF README, principal classes, decisions, GitHub link (557-563) | `target/Assignment3.zip` contains `Server.war`, `Client/`, and `README.docx`. The packager fills the Word document from a Git-ignored local submitter file. | ZIP/DOCX structure parsed; solo submitter details are present with no placeholders. GitHub merge is pending. |
+| ZIP and Word/PDF README, principal classes, decisions, GitHub link (557-563) | `target/Assignment3.zip` contains `Server.war`, `Client/`, and `README.docx`. The packager fills the Word document from a Git-ignored local submitter file. | ZIP/DOCX structure parsed; solo submitter details are present with no placeholders. The feature branch was published and fast-forwarded into `origin/main`. |
 | Chat bonus (543-553) | Not implemented or claimed. | Explicitly stated in README. |
 | More than two event options (489) | Not implemented as a separate feature. | Lecturer explicitly clarified that multi-option events are not required for this assignment; supported supplied v3 files were tested. |
 
 ## Remaining before hand-in
 
 1. Manually inspect the JavaFX window at normal and narrow sizes; automated screen capture was unavailable in this execution environment.
-2. Publish and merge `feature/trading-mechanism` into `origin/main` as authorized, then verify that the README's GitHub link points to the merged source.

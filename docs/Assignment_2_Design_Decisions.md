@@ -1030,6 +1030,10 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 | 14A | `c1a8b5e` |
 | 14B | `33bcd5e` |
 | 15 | `84b528e` |
+| 16 | `dbbf076` |
+| 17 | `39a4d4c` |
+| 18 | `e8d0f0f` |
+| 19 | `c5ac4b8` |
 
 ## Assignment 3 Stage 17: Clear Server-Connection Feedback
 
@@ -1060,3 +1064,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The full Assignment 3 package script completed successfully after the no-commit merge, including Protocol, Engine, Server, and all 7 Client tests; it refreshed `target/Assignment3.zip`. Git reported no merge conflicts or staged application changes.
 - Implementation result: Both Git histories are ready to be recorded in one merge commit without changing application behavior.
 - Commit ID: This merge commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 20: Publish Assignment 3 to Main
+
+- Goal: Publish all completed Assignment 3 commits to GitHub's default branch without overwriting the previously merged Assignment 2 history.
+- Rationale: The source link in the hand-in README should resolve to the completed project on `main`, and the feature branch should remain available as a traceable milestone.
+- Design decision: Push the active feature branch, then fast-forward `origin/main` from the validated merge commit; no force push, local branch checkout, or Assignment 4 branch creation. Personal submitter data remains only in the local ignored file and generated ZIP.
+- Changed files: This decision log and the requirement checklist, to record the completed publication.
+- Validation result: `ls-remote` showed both remote branches at `c5ac4b8` after the initial fast-forward. Git reported a clean active branch, and tracked-source search found no submitter ID or email. The final documentation commit will be pushed to both branches as well.
+- Implementation result: Assignment 3 code and the privacy-safe packaging workflow are published on `origin/main`; the submission ZIP remains local for course hand-in.
+- Commit ID: This milestone commit; hash to be reported in the completion summary.
