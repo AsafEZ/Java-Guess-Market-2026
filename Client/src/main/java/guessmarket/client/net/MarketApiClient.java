@@ -5,6 +5,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import guessmarket.protocol.AccountActivityView;
 import guessmarket.protocol.ActionResultView;
+import guessmarket.protocol.ChatMessageView;
 import guessmarket.protocol.ErrorView;
 import guessmarket.protocol.EventDetailsView;
 import guessmarket.protocol.EventView;
@@ -114,6 +115,16 @@ public final class MarketApiClient {
 
     public List<UserView> users() throws IOException, InterruptedException {
         return get("users", new TypeToken<List<UserView>>() {}.getType());
+    }
+
+    public List<ChatMessageView> chatAfter(long lastMessageId)
+            throws IOException, InterruptedException {
+        return get("chat?after=" + lastMessageId,
+                new TypeToken<List<ChatMessageView>>() {}.getType());
+    }
+
+    public ChatMessageView postChat(String text) throws IOException, InterruptedException {
+        return post("chat", Map.of("text", text), ChatMessageView.class);
     }
 
     public EventDetailsView event(int id) throws IOException, InterruptedException {

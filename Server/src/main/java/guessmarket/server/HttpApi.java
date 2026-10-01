@@ -32,6 +32,11 @@ final class HttpApi {
         return attribute instanceof ResumeSessions sessions ? sessions : null;
     }
 
+    static ChatRoom chatRoom(ServletContext context) {
+        Object attribute = context.getAttribute(ChatRoom.CONTEXT_ATTRIBUTE);
+        return attribute instanceof ChatRoom room ? room : null;
+    }
+
     static String sessionUserName(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {

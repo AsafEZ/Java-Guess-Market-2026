@@ -2,6 +2,7 @@ package guessmarket.client.net;
 
 import com.sun.net.httpserver.HttpServer;
 import guessmarket.protocol.UserView;
+import guessmarket.protocol.ChatMessageView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -93,6 +94,34 @@ class MarketApiClientTest {
         second.logout();
         assertEquals("secret-resume-token", resumeToken.get());
         assertTrue(logoutCookie.get().contains("JSESSIONID=second"));
+    }
+
+    @Test
+    void chatPostsTextAndReadsMessagesAfterTheRequestedCursor() throws Exception {
+        server = createServer();
+        AtomicReference<String> requestedCursor = new AtomicReference<>();
+        AtomicReference<String> postedBody = new AtomicReference<>();
+        server.createContext("/api/chat", exchange -> {
+            if ("GET".equals(exchange.getRequestMethod())) {
+                requestedCursor.set(exchange.getRequestURI().getQuery());
+                respond(exchange, 200,
+                        "[{\"id\":4,\"userName\":\"Alice\",\"text\":\"Hello\",\"sentAtEpochMillis\":1000}]");
+            } else {
+                postedBody.set(new String(exchange.getRequestBody().readAllBytes(),
+                        StandardCharsets.UTF_8));
+                respond(exchange, 201,
+                        "{\"id\":5,\"userName\":\"Bob\",\"text\":\"Hi\",\"sentAtEpochMillis\":2000}");
+            }
+        });
+        server.start();
+        MarketApiClient client = client();
+
+        assertEquals(List.of(new ChatMessageView(4, "Alice", "Hello", 1000)),
+                client.chatAfter(3));
+        assertEquals("after=3", requestedCursor.get());
+        assertEquals(new ChatMessageView(5, "Bob", "Hi", 2000), client.postChat("Hi"));
+        assertTrue(postedBody.get().contains("\"text\":\"Hi\""));
+        assertTrue(!postedBody.get().contains("userName"));
     }
 
     @Test

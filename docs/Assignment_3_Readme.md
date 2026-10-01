@@ -1,3 +1,5 @@
+Bonus implemented: Chat (Assignment 3, 5 points)
+
 # Guess Market - Assignment 3
 
 ## Submitters
@@ -24,7 +26,8 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - Any logged-in user may choose and upload a v3 XML file. A successful upload adds its events to the current system and makes the uploader their market maker. Invalid or duplicate event files produce an error and add nothing. The server parses the request stream and does not save the XML file.
 - The Events screen filters by mechanism, state, and commission type. Select an event to inspect prices or order book, executions, trades, and participants. The market maker may open and close it; active LMSR events allow share purchases, and active Order Book events allow buy/sell limit orders.
 - The Account screen shows other users' names, balances, and market-maker indicators. The private pane shows your own balance, fund deposit, positions, option holdings, trades, and activity ledger. These views refresh about once per second.
-- No chat bonus is claimed. The lecturer clarified that support for events with more than two options is not required despite the original aspiration in the assignment document; the supplied v3 schema and examples are accepted.
+- The `Chat` tab is shared by all logged-in users. Type a message and press `Send` or Enter; it appears in every client's chat within the normal one-second polling cycle. For a quick check, open two client windows with different names, send from each, and verify that both windows show both messages with the correct senders. Chat history is in server memory and disappears when Tomcat restarts.
+- The lecturer clarified that support for events with more than two options is not required despite the original aspiration in the assignment document; the supplied v3 schema and examples are accepted.
 
 ## Architecture and decisions
 
@@ -46,6 +49,7 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - Server / `HttpApi`: shared servlet helper for finding the Engine and session user, and writing UTF-8 JSON success or error responses.
 - Server / `LoginServlet`: registers a unique user name, stores it in the HTTP session, and reports a conflict when the name is already in use.
 - Server / `ResumeSessions`, `ResumeServlet`, `LogoutServlet`, and `SessionLifecycleListener`: issue and validate in-memory reconnect tokens, bind a returning client to the existing account only after its prior session ends, and release active connections on logout or session expiration. The Engine still owns the account and its balance.
+- Server / `ChatRoom` and `ChatServlet`: keep a server-ordered, in-memory global message history, accept text only from an authenticated session user, and return all messages or only those after a requested message ID. Clients never communicate directly with one another.
 - Server / `EventUploadServlet`: accepts an authenticated user's raw XML request stream, asks the Engine to append its events, and returns upload counts or validation errors; it does not save the uploaded file.
 - Server / `EventsServlet` and `EventDetailsServlet`: expose the shared event list and one selected event's method-specific prices, orders, trades, executions, and participants.
 - Server / `UsersServlet`: exposes each user's public name, balance, and market-maker indicator without exposing private positions or history.
@@ -53,11 +57,13 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - Server / `EventActionServlet`: handles authenticated open, LMSR purchase, Order Book order, and close requests; it validates input and passes the session user to the Engine.
 - Server / `ViewMapper`: converts Engine DTOs, including LMSR and Order Book details, into the data-only response objects sent as JSON.
 - Protocol / `EventView`, `EventDetailsView`, `UserView`, `UserDetailsView`, `AccountActivityView`, `UploadView`, `ActionResultView`, and `ErrorView`: principal data-only wire records shared by server and client. Related option, order, execution, trade, and position records carry nested display data without UI or Engine implementation types.
+- Protocol / `ChatMessageView`: data-only chat message containing server sequence ID, sender, text, and timestamp; shared by server and desktop client.
 - Client / `ClientLauncher`: sets the Windows-specific JDK loopback workaround before starting the JavaFX application.
 - Client / `MarketApiClient`: sends HTTP requests to the built-in `localhost:8080/Server/api/` URL, keeps the session cookie, and converts JSON responses into Protocol DTOs.
 - Client / `SavedConnections`: keeps one server-issued reconnect token per previously used name in the current Windows user's home directory. It does not store balances or passwords.
+- Client / `ChatPane`: presents the shared chat stream and composer, prevents duplicate rows from overlapping polls, and sends new text through `MarketApiClient` on a background task.
 - Client / `ApiException`: preserves HTTP status, server error code, and message so the UI can show an actionable failure.
-- Client / `MarketClientApplication`: owns login, Events/Account navigation, XML file choice, public lists and filters, background network tasks, and one-second server polling.
+- Client / `MarketClientApplication`: owns login, Events/Account/Chat navigation, XML file choice, public lists and filters, background network tasks, and one-second server polling.
 - Client / `EventDetailPane`: renders an event's method-specific data and enables only actions allowed by its state, mechanism, and the current user's market-maker role.
 - Client / `AccountDetailPane`: renders the private balance, deposit form, event positions, per-option holdings, trades, and activity history.
 
@@ -66,6 +72,7 @@ The request path is JavaFX pane -> `MarketApiClient` -> Tomcat servlet -> shared
 ## Troubleshooting
 
 - A 404 or connection failure after login usually means Tomcat has not deployed Server.war yet, the WAR was renamed, or port 8080 is occupied. Check Tomcat logs and http://localhost:8080/Server/api/health .
+- The Chat tab needs the Server.war from this ZIP. Replacing an older deployed WAR restarts the in-memory application and clears its users, events, balances, and chat; do this before starting a grading session.
 - Java must be version 25. The client directory must retain its lib folder alongside Client.jar and run-client.bat.
 - Upload only Assignment 3 XML files. A duplicate event name or invalid XML is rejected as a whole; details appear in the client feedback area.
 - The user list reveals only other users' public name/balance/market-maker status; account positions and history remain private to the logged-in session.

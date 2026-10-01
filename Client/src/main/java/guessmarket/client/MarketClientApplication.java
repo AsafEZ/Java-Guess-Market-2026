@@ -5,6 +5,7 @@ import guessmarket.client.net.MarketApiClient;
 import guessmarket.protocol.EventView;
 import guessmarket.protocol.EventDetailsView;
 import guessmarket.protocol.AccountActivityView;
+import guessmarket.protocol.ChatMessageView;
 import guessmarket.protocol.UserDetailsView;
 import guessmarket.protocol.UserView;
 import javafx.application.Application;
@@ -38,6 +39,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.http.HttpConnectTimeoutException;
 import java.util.List;
@@ -60,6 +62,7 @@ public final class MarketClientApplication extends Application {
     private String currentUser;
     private Label feedback;
     private AccountDetailPane accountDetail;
+    private ChatPane chatPane;
     private EventDetailPane eventDetail;
     private TableView<EventView> eventTable;
     private ComboBox<String> methodFilter;
@@ -148,7 +151,7 @@ public final class MarketClientApplication extends Application {
                 savedUser, resume, error);
         form.setAlignment(Pos.CENTER_LEFT);
         form.setPadding(new Insets(28));
-        form.setMaxSize(420, 290);
+        form.setMaxSize(420, 390);
         form.getStyleClass().add("login-form");
         BorderPane root = new BorderPane(form);
         root.getStyleClass().add("app-root");
@@ -177,6 +180,8 @@ public final class MarketClientApplication extends Application {
         tabs.getStyleClass().add("workspace-tabs");
         tabs.getTabs().addAll(new Tab("Events", createEventsView()),
                 new Tab("Account", createAccountView()));
+        chatPane = new ChatPane(api, this::showFeedback);
+        tabs.getTabs().add(new Tab("Chat", chatPane));
         root.setCenter(tabs);
         Scene scene = new Scene(root, Math.max(stage.getWidth(), 900),
                 Math.max(stage.getHeight(), 620));
@@ -282,6 +287,7 @@ public final class MarketClientApplication extends Application {
                 List<UserView> nextUsers = api.users();
                 UserDetailsView account = api.account();
                 List<AccountActivityView> activity = api.history();
+                List<ChatMessageView> chat = fetchChat();
                 int detailId = eventDetail.selectedId();
                 EventDetailsView detail = detailId == 0 ? null : api.event(detailId);
                 Platform.runLater(() -> {
@@ -302,6 +308,7 @@ public final class MarketClientApplication extends Application {
                     }
                     users.setAll(nextUsers);
                     accountDetail.update(account, activity);
+                    chatPane.append(chat);
                     if (detail != null) {
                         eventDetail.update(detail);
                     }
@@ -310,6 +317,17 @@ public final class MarketClientApplication extends Application {
                 Platform.runLater(() -> showFeedback(message(exception), true));
             }
         }, 0, 1, TimeUnit.SECONDS);
+    }
+
+    private List<ChatMessageView> fetchChat() throws IOException, InterruptedException {
+        try {
+            return api.chatAfter(chatPane.lastId());
+        } catch (ApiException exception) {
+            if (exception.status() == 404) {
+                return List.of();
+            }
+            throw exception;
+        }
     }
 
     private void chooseAndUpload(Button upload) {

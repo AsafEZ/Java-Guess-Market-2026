@@ -77,4 +77,10 @@ class ProtocolJsonTest {
 
         assertEquals(result, gson.fromJson(gson.toJson(result), ActionResultView.class));
     }
+
+    @Test
+    void chatMessageRoundTripsWithoutUiOrEngineTypes() {
+        ChatMessageView message = new ChatMessageView(3, "Alice", "Hello", 1_800_000_000_000L);
+        assertEquals(message, gson.fromJson(gson.toJson(message), ChatMessageView.class));
+    }
 }

@@ -88,6 +88,15 @@
     -fx-border-color: transparent;
 }
 
+.chat-pane {
+    -fx-background-color: #ffffff;
+}
+
+.chat-message {
+    -fx-text-fill: #17202a;
+    -fx-padding: 7px 4px;
+}
+
 .event-state {
     -fx-text-fill: #1d6b45;
     -fx-font-weight: bold;

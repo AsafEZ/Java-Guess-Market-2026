@@ -42,6 +42,14 @@
         <url-pattern>/api/session/logout</url-pattern>
     </servlet-mapping>
     <servlet>
+        <servlet-name>chat</servlet-name>
+        <servlet-class>guessmarket.server.ChatServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>chat</servlet-name>
+        <url-pattern>/api/chat</url-pattern>
+    </servlet-mapping>
+    <servlet>
         <servlet-name>event-upload</servlet-name>
         <servlet-class>guessmarket.server.EventUploadServlet</servlet-class>
     </servlet>
