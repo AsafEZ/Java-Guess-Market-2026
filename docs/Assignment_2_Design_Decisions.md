@@ -1030,3 +1030,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 | 14A | `c1a8b5e` |
 | 14B | `33bcd5e` |
 | 15 | `84b528e` |
+
+## Assignment 3 Stage 17: Clear Server-Connection Feedback
+
+- Goal: Help a user recover when the desktop client is started while Tomcat is stopped.
+- Rationale: The login form previously displayed only "The request failed." for a connection refusal with no exception message, making a valid user name look suspect.
+- Design decision: Keep server-side API errors unchanged, but map client connection refusals and connect timeouts to a message naming the configured localhost server URL and asking the user to start Tomcat. The existing login form remains available for retry without restarting JavaFX.
+- Changed files: `MarketClientApplication.java`, `MarketClientApplicationTest.java`, and this decision log.
+- Validation result: Client `clean package` passed all 7 tests, including connection-refusal guidance and preservation of an HTTP conflict message. The already deployed Tomcat health endpoint returned 200 after the change.
+- Implementation result: The client now distinguishes a stopped/unreachable server from a rejected user name and tells the user which server URL to start.
+- Commit ID: This milestone commit; hash to be reported in the completion summary.

@@ -38,6 +38,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.net.ConnectException;
+import java.net.http.HttpConnectTimeoutException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -343,6 +345,13 @@ public final class MarketClientApplication extends Application {
     static String message(Throwable failure) {
         if (failure instanceof ApiException apiFailure) {
             return apiFailure.getMessage();
+        }
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConnectException
+                    || cause instanceof HttpConnectTimeoutException) {
+                return "Cannot connect to the Guess Market server at "
+                        + MarketApiClient.DEFAULT_BASE + ". Start Tomcat and try again.";
+            }
         }
         return failure.getMessage() == null ? "The request failed." : failure.getMessage();
     }
