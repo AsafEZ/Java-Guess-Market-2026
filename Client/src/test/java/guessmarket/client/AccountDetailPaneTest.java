@@ -26,9 +26,15 @@ class AccountDetailPaneTest {
     static void startToolkit() throws Exception {
         CountDownLatch ready = new CountDownLatch(1);
         try {
-            Platform.startup(ready::countDown);
+            Platform.startup(() -> {
+                Platform.setImplicitExit(false);
+                ready.countDown();
+            });
         } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(ready::countDown);
+            Platform.runLater(() -> {
+                Platform.setImplicitExit(false);
+                ready.countDown();
+            });
         }
         assertTrue(ready.await(10, TimeUnit.SECONDS));
     }

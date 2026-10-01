@@ -968,3 +968,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` passed 5 tests with no failures, including the new account pane regression.
 - Implementation result: The client presents private account state without Engine dependencies or server API changes.
 - Commit ID: This milestone commit; hash to be recorded in the final stage index.
+
+## Assignment 3 Stage 14A: Stable JavaFX Test Lifecycle
+
+- Goal: Make both JavaFX pane tests repeatable in one Maven test JVM.
+- Rationale: A later clean build timed out in the account pane test after an earlier test had allowed the JavaFX toolkit to close without an open window.
+- Design decision: Each pane test disables JavaFX implicit exit in its toolkit-startup callback, including when the toolkit was already started by the other test. Production code and public APIs are unchanged.
+- Changed files: `AccountDetailPaneTest.java`, `EventDetailPaneTest.java`, and this decision log.
+- Validation result: Two consecutive Client `clean package` runs passed all 5 tests with no failures.
+- Implementation result: The UI tests no longer depend on JavaFX test-class execution order.
+- Commit ID: This milestone commit; hash to be recorded in the final stage index.
