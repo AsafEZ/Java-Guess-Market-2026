@@ -1114,3 +1114,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Full package build succeeded after the targeted Server cleanup. Across Protocol, Engine, Server, and Client, 363 tests passed with zero failures or errors. Nested ZIP inspection found exactly one WAR, a client batch, a parseable Word README with solo submitter details and Chat bonus named first, no placeholders, zero reconnect classes in the WAR, and the Chat classes present.
 - Implementation result: The submitted client uses one user-name field and one `Sign in` button. Duplicate names remain registered for the lifetime of the server and produce a retry message; no password, sign-up, or account-return option is presented as a lecturer requirement.
 - Commit ID: This login-alignment commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 25: Chat Operating Guide
+
+- Goal: Make the packaged README sufficient for a grader to operate and verify the Chat bonus without separate instructions.
+- Rationale: The prior README named the bonus and offered a short two-window check, but did not explain empty, invalid, historical, or restarted-server states.
+- Design decision: Add a dedicated Chat guide with startup order, two distinct users, Send/Enter behavior, expected sender/time display, 500-character validation, global scope, and in-memory reset behavior. Preserve the existing chat protocol and UI implementation, which already provide those behaviors.
+- Changed files: Assignment 3 README, requirement checklist, and this decision log.
+- Validation result: Full packaging build passed 363 tests with zero failures or errors. The ZIP has exactly one WAR, the client batch, and a parseable Word README with the bonus named first, the two-user guide, solo submitter details, and no placeholders. The final WAR was deployed to the local Tomcat on port 8080; two authenticated users both saw both posted messages in order, `after=1` returned only the second message, duplicate login returned 409, unauthenticated chat returned 401, and a blank message returned 400.
+- Implementation result: The hand-in README now contains a complete Chat operating and verification procedure.
+- Commit ID: This documentation commit; hash to be reported in the completion summary.

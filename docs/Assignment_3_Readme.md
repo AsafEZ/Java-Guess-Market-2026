@@ -29,6 +29,16 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - The `Chat` tab is shared by all logged-in users. Type a message and press `Send` or Enter; it appears in every client's chat within the normal one-second polling cycle. For a quick check, open two client windows with different names, send from each, and verify that both windows show both messages with the correct senders. Chat history is in server memory and disappears when Tomcat restarts.
 - The lecturer clarified that support for events with more than two options is not required despite the original aspiration in the assignment document; the supplied v3 schema and examples are accepted.
 
+## Using and checking the Chat bonus
+
+1. Deploy the `Server.war` from this ZIP and start Tomcat before opening the desktop client. Launch `Client/run-client.bat` twice, leaving both windows open.
+2. Sign in with two different, unused names. Each window opens on Events; select the `Chat` tab in each. An empty chat displays `No messages yet`.
+3. In the first window, type a message of 1 to 500 characters in `Message`, then press `Send` or Enter. The sender name, local time, and text should appear in both windows, normally within about one second. Repeat from the second window; both messages should appear in both windows in the same order.
+4. Blank messages cannot be sent, and a message over 500 characters is rejected with feedback. Sending does not block the rest of the interface. There are no private chats, attachments, message edits, deletions, or administrator controls: this bonus is one shared conversation for logged-in users.
+5. The server owns message order and sender identity. Chat remains visible when switching tabs, and a newly connected user can read the current server's earlier messages. Restarting or redeploying Tomcat clears chat and all other in-memory state; open clients must then be restarted and signed in again.
+
+If a message does not appear, confirm that both windows use the `Client` directory from this ZIP and that `http://localhost:8080/Server/api/health` responds. An older `Server.war` will not provide the Chat endpoint. The client shows request errors in the header; check Tomcat logs if the server is unavailable.
+
 ## Architecture and decisions
 
 - Server.war contains Engine, Protocol, Gson, XML validation resources, servlet routes, and their runtime dependencies. Tomcat supplies the Servlet API. `EngineContextListener` holds one Engine instance for the Tomcat deployment.
