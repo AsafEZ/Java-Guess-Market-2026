@@ -1050,3 +1050,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The full package script passed Protocol, Engine, Server, and all 7 Client tests. Nested ZIP/DOCX inspection confirmed the solo submitter details, zero unfilled placeholders, and exactly one WAR. `git check-ignore` confirmed the personal JSON is excluded.
 - Implementation result: The local submission ZIP contains complete submitter details; tracked source files contain none of the personal values.
 - Commit ID: This milestone commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 19: Synchronize Main Before Publication
+
+- Goal: Preserve the new `origin/main` merge commit and make Assignment 3 ready for a fast-forward publication to the default branch.
+- Rationale: GitHub merged the prior Assignment 2 feature branch after the active Assignment 3 branch had already continued, so the current remote main commit was not yet an ancestor.
+- Design decision: Merge `origin/main` into the active `feature/trading-mechanism` branch without switching branches or rewriting history. The remote merge commit has the same file tree as the Assignment 3 branch's merge base, so no application content changes are required. This design-log entry records the synchronization.
+- Changed files: This decision log only; the Git merge preserves both parent histories.
+- Validation result: The full Assignment 3 package script completed successfully after the no-commit merge, including Protocol, Engine, Server, and all 7 Client tests; it refreshed `target/Assignment3.zip`. Git reported no merge conflicts or staged application changes.
+- Implementation result: Both Git histories are ready to be recorded in one merge commit without changing application behavior.
+- Commit ID: This merge commit; hash to be reported in the completion summary.
