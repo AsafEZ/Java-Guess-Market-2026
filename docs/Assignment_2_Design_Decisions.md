@@ -998,3 +998,35 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: The full package script completed with no test failures and produced `target/Assignment3.zip`. Archive inspection found exactly one WAR and 13 entries with no backslash names. The WAR contains Engine, Protocol, Gson, XML/JAXB dependencies, and `web.xml`; DOCX XML parsed with 43 paragraphs. The packaged batch launched JavaFX and stayed running until manually stopped, without cache write warnings. Visual inspection and final submitter details remain pending.
 - Implementation result: A locally built, runnable Assignment 3 submission archive exists; personal README fields must be filled before hand-in.
 - Commit ID: This milestone commit; hash to be recorded in the final stage index.
+
+## Assignment 3 Stage 16: Requirement Audit and Packaged WAR Smoke Test
+
+- Goal: Verify the final packaged WAR on Tomcat and map each Assignment 3 requirement to implementation and evidence.
+- Rationale: A successful build alone does not prove that the exact hand-in artifact deploys or that every assignment clause has been addressed.
+- Design decision: The checklist distinguishes automated/live evidence from visual/manual follow-up and records the lecturer's explicit exclusion of multi-option events. A disposable Tomcat base under `Server/target` tests the WAR copied from the generated delivery folder; it is stopped after testing. Personal submission fields and GitHub push remain user-controlled.
+- Changed files: `docs/Assignment_3_Requirement_Checklist.md` and this decision log.
+- Validation result: Packaged WAR deployed on Tomcat 10.1.60; fresh login and initial empty list returned 200, supplied `multiple.xml` added 3 events, and private history returned 200. Tomcat shut down cleanly. The full packaging build and 5 Client tests passed in Stage 15.
+- Implementation result: Assignment 3 clauses are individually accounted for; personal README fields, a visual resize check, and publication approval remain outstanding.
+- Commit ID: This milestone commit; hash to be reported in the completion summary.
+
+## Assignment 3 Commit Index
+
+| Stage | Commit |
+| --- | --- |
+| 1 | `e842fbd` |
+| 2 | `9b30f6d` |
+| 3 | `6e0d0e2` |
+| 4 | `07c7200` |
+| 5 | `7e7ca05` |
+| 6 | `245d571` |
+| 7 | `d6c839e` |
+| 8 | `e5a9cb4` |
+| 9 | `220c2db` |
+| 10 | `ab78558` |
+| 11 | `107f262` |
+| 12 | `bb4ef14` |
+| 13 | `0b8bf9b` |
+| 14 | `b97194f` |
+| 14A | `c1a8b5e` |
+| 14B | `33bcd5e` |
+| 15 | `84b528e` |
