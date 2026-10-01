@@ -988,3 +988,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Client `clean package` passed all 5 tests; the full Assignment 3 package script subsequently built Protocol, Engine, Server, and Client and produced `target/Assignment3.zip` with no test failures.
 - Implementation result: The previously failing full-build test path completes successfully.
 - Commit ID: This milestone commit; hash to be recorded in the final stage index.
+
+## Assignment 3 Stage 15: Submission Packaging
+
+- Goal: Produce the exact Assignment 3 submission structure: one deployable WAR, a self-contained client directory with a Windows launcher, and a Word README in one ZIP.
+- Rationale: The grader runs compiled deliverables on a clean machine without Maven, IntelliJ, or preinstalled application dependencies.
+- Design decision: A repeatable PowerShell packager builds Protocol, Engine, Server, and Client, copies client runtime JARs, fixes the WAR name to `Server.war` to match the client's context path, converts the maintained README source into DOCX, and verifies there is exactly one WAR. The ZIP uses portable forward-slash entry names. Output stays under ignored `target/`. The launcher checks Java directly and sets its home directory to the Windows user profile for JavaFX native cache writes. Submitter fields are reserved until provided.
+- Changed files: `Client/run-client.bat`, `scripts/package-assignment3.ps1`, `docs/Assignment_3_Readme.md`, and this decision log.
+- Validation result: The full package script completed with no test failures and produced `target/Assignment3.zip`. Archive inspection found exactly one WAR and 13 entries with no backslash names. The WAR contains Engine, Protocol, Gson, XML/JAXB dependencies, and `web.xml`; DOCX XML parsed with 43 paragraphs. The packaged batch launched JavaFX and stayed running until manually stopped, without cache write warnings. Visual inspection and final submitter details remain pending.
+- Implementation result: A locally built, runnable Assignment 3 submission archive exists; personal README fields must be filled before hand-in.
+- Commit ID: This milestone commit; hash to be recorded in the final stage index.
