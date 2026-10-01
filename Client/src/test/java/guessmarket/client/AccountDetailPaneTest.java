@@ -41,8 +41,9 @@ class AccountDetailPaneTest {
 
     @Test
     void accountRefreshShowsPositionsAndPrivateHistory() throws Exception {
+        MarketApiClient api = new MarketApiClient();
         onFxThread(() -> {
-            AccountDetailPane pane = new AccountDetailPane(new MarketApiClient(),
+            AccountDetailPane pane = new AccountDetailPane(api,
                     (message, error) -> {});
             VBox body = (VBox) pane.getContent();
             Label balance = (Label) body.getChildren().get(1);

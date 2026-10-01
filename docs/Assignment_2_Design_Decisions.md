@@ -978,3 +978,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Two consecutive Client `clean package` runs passed all 5 tests with no failures.
 - Implementation result: The UI tests no longer depend on JavaFX test-class execution order.
 - Commit ID: This milestone commit; hash to be recorded in the final stage index.
+
+## Assignment 3 Stage 14B: Isolated UI Test Processes
+
+- Goal: Eliminate the intermittent JavaFX pane test timeout seen during a full package build.
+- Rationale: Keeping the toolkit alive did not prevent a later account-pane timeout when tests ran together; UI tests must not share toolkit state or initialize the HTTP client on the FX thread.
+- Design decision: The Windows Surefire profile forks one process per test class, and both UI tests construct `MarketApiClient` before entering the JavaFX application thread. Production behavior and public APIs are unchanged.
+- Changed files: Client POM, `AccountDetailPaneTest.java`, `EventDetailPaneTest.java`, and this decision log.
+- Validation result: Client `clean package` passed all 5 tests; the full Assignment 3 package script subsequently built Protocol, Engine, Server, and Client and produced `target/Assignment3.zip` with no test failures.
+- Implementation result: The previously failing full-build test path completes successfully.
+- Commit ID: This milestone commit; hash to be recorded in the final stage index.

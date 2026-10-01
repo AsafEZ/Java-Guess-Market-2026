@@ -38,8 +38,9 @@ class EventDetailPaneTest {
 
     @Test
     void makerAndMethodDetermineAvailableActions() throws Exception {
+        MarketApiClient api = new MarketApiClient();
         onFxThread(() -> {
-            EventDetailPane pane = new EventDetailPane(new MarketApiClient(),
+            EventDetailPane pane = new EventDetailPane(api,
                     "Maker", (message, error) -> {}, result -> {});
             VBox body = (VBox) pane.getContent();
             VBox actions = (VBox) body.getChildren().get(4);
