@@ -29,6 +29,13 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 - The `Chat` tab is shared by all logged-in users. Type a message and press `Send` or Enter; it appears in every client's chat within the normal one-second polling cycle. For a quick check, open two client windows with different names, send from each, and verify that both windows show both messages with the correct senders. Chat history is in server memory and disappears when Tomcat restarts.
 - The lecturer clarified that support for events with more than two options is not required despite the original aspiration in the assignment document; the supplied v3 schema and examples are accepted.
 
+## Periodic refresh and selection
+
+- The client polls the shared server every second for events, users, the signed-in account, activity history, and the selected event's details. HTTP calls run off the JavaFX thread.
+- Incoming data-only DTOs are compared by value with the displayed data. An unchanged response leaves the relevant table untouched, avoiding repeated row replacement and selection changes when the server has no new information.
+- When data does change, each affected table saves its selected row by a stable key, replaces the rows, and selects the matching updated row. A row that no longer exists remains unselected. Account position updates suppress intermediate selection callbacks so their option and trade tables do not clear briefly during the replacement.
+- Chat is incremental: the client requests only messages after its last received message ID and appends them. The server API and Engine do not need a version counter or changes for this refresh strategy.
+
 ## Using and checking the Chat bonus
 
 1. Deploy the `Server.war` from this ZIP and start Tomcat before opening the desktop client. Launch `Client/run-client.bat` twice, leaving both windows open.

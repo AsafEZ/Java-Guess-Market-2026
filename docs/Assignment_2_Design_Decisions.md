@@ -1164,3 +1164,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: Unchanged server responses leave table contents and selections untouched. Changed responses refresh only the affected tables, with surviving selections restored; Chat continues to append only new messages.
 - Test result: Client tests passed after the change. The full hand-in build passed 367 tests with zero failures or errors. ZIP inspection confirmed exactly one WAR, one DOCX README, the client JAR and batch, nine runtime JARs, the updated `TableRefresh` class, and the refresh explanation in the DOCX.
 - Commit ID: This periodic-refresh commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 30: Submission README Refresh
+
+- Goal: Explain the periodic UI refresh in the Assignment 3 hand-in README and make its English Word document read left to right with reliable heading pagination.
+- Rationale: The latest client fix needs to be understandable to the grader, and the generated DOCX previously left a section heading alone at the bottom of a page.
+- Design decision: Add a concise account of one-second polling, value-based updates, stable-key selection restoration, and incremental Chat retrieval. Generate every DOCX paragraph with explicit left alignment and left-to-right direction; format headings directly and keep each with its first paragraph. No runtime behavior or public API changes.
+- Changed files: `docs/Assignment_3_Readme.md`, `scripts/package-assignment3.ps1`, and this decision log.
+- Implementation result: The packaged README contains the refresh explanation and the Chat bonus instructions, with left-aligned English text and no orphaned section heading.
+- Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP contains exactly one WAR, one client JAR and batch, and one matching DOCX README. Word rendered all seven pages without clipping; all 86 generated paragraphs have left alignment, and all nine headings are kept with following content. No submitter placeholders remain.
+- Commit ID: This submission README commit; hash to be reported in the completion summary.

@@ -107,16 +107,31 @@ if ($readmeSource.Contains('[ADD ')) {
 }
 $readme = $readmeSource -split '\r?\n'
 $paragraphs = [Text.StringBuilder]::new()
+$afterHeading = $false
 foreach ($line in $readme) {
-    $style = ''
-    if ($line.StartsWith('# ')) {
-        $style = '<w:pPr><w:pStyle w:val="Heading1"/></w:pPr>'
-        $line = $line.Substring(2)
-    } elseif ($line.StartsWith('## ')) {
-        $style = '<w:pPr><w:pStyle w:val="Heading2"/></w:pPr>'
-        $line = $line.Substring(3)
+    if ($afterHeading -and $line.Length -eq 0) {
+        $afterHeading = $false
+        continue
     }
-    [void]$paragraphs.Append('<w:p>').Append($style).Append('<w:r><w:t xml:space="preserve">')
+    $afterHeading = $false
+    $style = ''
+    $headingRun = ''
+    if ($line.StartsWith('# ')) {
+        $style = '<w:pStyle w:val="Heading1"/><w:keepNext/>'
+        $headingRun = '<w:b/><w:sz w:val="28"/>'
+        $line = $line.Substring(2)
+        $afterHeading = $true
+    } elseif ($line.StartsWith('## ')) {
+        $style = '<w:pStyle w:val="Heading2"/><w:keepNext/>'
+        $headingRun = '<w:b/><w:sz w:val="24"/>'
+        $line = $line.Substring(3)
+        $afterHeading = $true
+    }
+    [void]$paragraphs.Append('<w:p><w:pPr>').Append($style)
+    [void]$paragraphs.Append('<w:jc w:val="left"/><w:bidi w:val="0"/></w:pPr>')
+    [void]$paragraphs.Append('<w:r><w:rPr>').Append($headingRun)
+    [void]$paragraphs.Append('<w:rtl w:val="0"/>')
+    [void]$paragraphs.Append('<w:lang w:val="en-US"/></w:rPr><w:t xml:space="preserve">')
     [void]$paragraphs.Append((Escape-Xml $line)).Append('</w:t></w:r></w:p>')
 }
 $docx = Join-Path $target 'README.docx'
