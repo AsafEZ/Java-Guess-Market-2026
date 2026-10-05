@@ -1184,3 +1184,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The seven-page Word README now presents system behavior, operating instructions, design choices, and code orientation without an explicit lecturer reference. The ZIP includes the revised DOCX.
 - Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. ZIP inspection found exactly one WAR, client JAR, batch, and DOCX; the packaged DOCX matches the generated one, begins with the Chat bonus, and has no unfilled placeholders. All seven pages were rendered in Word and checked for readable layout. Git tracks no files under `target/`, so the earlier submission copy will not be pushed.
 - Commit ID: This editorial cleanup commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 32: Direct Source Link in Submission
+
+- Goal: Make the source-code URL in the hand-in README open the exact GitHub branch containing the submitted Assignment 3 implementation.
+- Rationale: The repository's default `main` branch still points to the previous version, while the verified submission commits were pushed to `feature/trading-mechanism`.
+- Design decision: Link directly to the active feature branch rather than modifying `main` or changing the reviewed implementation documentation. Keep the local previous-submission backup under Git-ignored `target/`.
+- Changed files: `docs/Assignment_3_Readme.md` and this decision log. The rebuilt DOCX and ZIP are generated artifacts.
+- Implementation result: The packaged Word README contains a direct link to the same branch as the submitted code.
+- Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP passed integrity checks and contains one WAR, one client batch, and one matching DOCX. Word rendered seven pages; the longer URL wraps cleanly on page one.
+- Commit ID: This direct-link commit; hash to be reported in the completion summary.
