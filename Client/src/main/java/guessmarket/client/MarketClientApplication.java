@@ -69,6 +69,7 @@ public final class MarketClientApplication extends Application {
     private ChatPane chatPane;
     private EventDetailPane eventDetail;
     private TableView<EventView> eventTable;
+    private TableView<UserView> userTable;
     private ComboBox<String> methodFilter;
     private ComboBox<String> statusFilter;
     private ComboBox<String> commissionFilter;
@@ -246,7 +247,7 @@ public final class MarketClientApplication extends Application {
     }
 
     private SplitPane createAccountView() {
-        TableView<UserView> userTable = new TableView<>(users);
+        userTable = new TableView<>(users);
         userTable.setPlaceholder(new Label("No users yet"));
         userTable.getColumns().setAll(List.of(
                 column("User", user -> user.name(), 150),
@@ -291,7 +292,7 @@ public final class MarketClientApplication extends Application {
                             replacingEvents = false;
                         }
                     }
-                    users.setAll(nextUsers);
+                    TableRefresh.update(userTable, nextUsers, UserView::name);
                     accountDetail.update(account, activity);
                     chatPane.append(chat);
                     if (detail != null) {

@@ -1154,3 +1154,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Validation result: Full packaging passed 364 tests with zero failures or errors. The ID-bearing ZIP contains exactly one WAR, `Client/Client.jar`, nine client runtime JARs, `Client/run-client.bat`, and `README.docx`. Its first README line names the Chat bonus; it contains the solo name, ID, current email, GitHub link, user guide, chat guide, and class guide, with no placeholders. The old `Assignment3.zip` was removed after these checks.
 - Implementation result: The workspace now has one unambiguous, correctly named Assignment 3 ZIP for course upload.
 - Commit ID: This hand-in naming commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 29: Stable Periodic UI Refresh
+
+- Goal: Apply the lecturer's clarification on frequent server polling while minimizing UI flicker and preserving table selections.
+- Rationale: The Events master list and account positions/history already skipped unchanged snapshots and restored key selections, and Chat already fetched by message ID. The Users list and Event details tables still replaced rows every second, while secondary table selections could be lost when data changed.
+- Design decision: Compare Protocol DTO data before updating JavaFX tables, and restore a selected row by its stable domain key after a real change. Keep the one-second polling interval and existing HTTP API; a new server-side version counter is unnecessary for this client. Suppress intermediate account position selection callbacks while replacing rows, then refresh its dependent tables once.
+- Changed files: Client polling, event/account panes, shared table refresh helper, focused JavaFX regression tests, the Assignment 3 README template and requirement checklist, and this decision log. No Engine, Server, or Protocol API changes.
+- Implementation result: Unchanged server responses leave table contents and selections untouched. Changed responses refresh only the affected tables, with surviving selections restored; Chat continues to append only new messages.
+- Test result: Client tests passed after the change. The full hand-in build passed 367 tests with zero failures or errors. ZIP inspection confirmed exactly one WAR, one DOCX README, the client JAR and batch, nine runtime JARs, the updated `TableRefresh` class, and the refresh explanation in the DOCX.
+- Commit ID: This periodic-refresh commit; hash to be reported in the completion summary.

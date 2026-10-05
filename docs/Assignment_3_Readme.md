@@ -46,7 +46,7 @@ If a message does not appear, confirm that both windows use the `Client` directo
 - Protocol is a shared, data-only JAR. Servlet `ViewMapper` converts Engine DTOs to flat JSON views; the client never depends on Engine implementation classes.
 - Server servlets handle login/session, XML upload, public event/user lists, detailed event/private account reads, deposits, history, and event actions. User identity for private actions is always taken from the HTTP session.
 - `MarketApiClient` uses Java HttpClient, Gson, and a cookie manager. `ClientLauncher` initializes the Windows-specific loopback workaround before the JavaFX app starts. `MarketClientApplication` provides navigation, upload, filtering, and polling. `EventDetailPane` and `AccountDetailPane` render method-specific trading and private account data.
-- Event changes and account history are polled every second. Background tasks handle network calls without blocking the JavaFX thread. There is no persistent storage and no direct client-to-client communication.
+- Event, user, account, and history data are polled every second. The client compares each new data-only response with the displayed records and replaces table rows only when their content changes. Selections are restored by stable keys such as event ID, user name, option number, or order, trade, execution, and activity IDs after a changed table is refreshed. Chat requests only messages after the last received message ID and appends them. Background tasks handle network calls without blocking the JavaFX thread. There is no persistent storage and no direct client-to-client communication.
 
 ## Main classes and responsibilities
 

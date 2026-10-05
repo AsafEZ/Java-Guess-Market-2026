@@ -35,6 +35,7 @@ final class AccountDetailPane extends ScrollPane {
     private final TableView<OptionPositionView> options = new TableView<>();
     private final TableView<TradeView> trades = new TableView<>();
     private final TableView<AccountActivityView> history = new TableView<>();
+    private boolean replacingPositions;
 
     AccountDetailPane(MarketApiClient api, BiConsumer<String, Boolean> feedback) {
         this.api = Objects.requireNonNull(api);
@@ -69,23 +70,23 @@ final class AccountDetailPane extends ScrollPane {
     }
 
     void update(UserDetailsView account, List<AccountActivityView> activity) {
-        balance.setText("Balance: " + money(account.balance()));
-        Integer selectedId = positions.getSelectionModel().getSelectedItem() == null
-                ? null : positions.getSelectionModel().getSelectedItem().eventId();
-        if (!positions.getItems().equals(account.positions())) {
-            positions.getItems().setAll(account.positions());
-            if (selectedId != null) {
-                account.positions().stream().filter(position -> position.eventId() == selectedId)
-                        .findFirst().ifPresent(positions.getSelectionModel()::select);
+        updateBalance(account.balance());
+        replacingPositions = true;
+        try {
+            if (TableRefresh.update(positions, account.positions(), PositionView::eventId)) {
+                showPosition(positions.getSelectionModel().getSelectedItem());
             }
+        } finally {
+            replacingPositions = false;
         }
-        if (!history.getItems().equals(activity)) {
-            history.getItems().setAll(activity);
-        }
+        TableRefresh.update(history, activity, AccountActivityView::id);
     }
 
     void updateBalance(double value) {
-        balance.setText("Balance: " + money(value));
+        String next = "Balance: " + money(value);
+        if (!balance.getText().equals(next)) {
+            balance.setText(next);
+        }
     }
 
     private void deposit(TextField amount, Button button) {
@@ -121,7 +122,11 @@ final class AccountDetailPane extends ScrollPane {
         positions.setPlaceholder(new Label("No event positions"));
         positions.setPrefHeight(210);
         positions.getSelectionModel().selectedItemProperty().addListener(
-                (ignored, oldValue, selected) -> showPosition(selected));
+                (ignored, oldValue, selected) -> {
+                    if (!replacingPositions) {
+                        showPosition(selected);
+                    }
+                });
         positionSummary.setWrapText(true);
 
         options.getColumns().setAll(List.of(
@@ -165,8 +170,8 @@ final class AccountDetailPane extends ScrollPane {
                 + position.eventStatus().replace('_', ' ')
                 + (position.winningOptionName() == null ? ""
                 : "  |  Winner: " + position.winningOptionName()));
-        options.getItems().setAll(position.options());
-        trades.getItems().setAll(position.tradesNewestFirst());
+        TableRefresh.update(options, position.options(), OptionPositionView::optionNumber);
+        TableRefresh.update(trades, position.tradesNewestFirst(), TradeView::tradeNumber);
     }
 
     private static <T> TableColumn<T, String> column(

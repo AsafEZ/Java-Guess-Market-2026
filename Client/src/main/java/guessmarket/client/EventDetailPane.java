@@ -135,7 +135,8 @@ final class EventDetailPane extends ScrollPane {
     }
 
     void update(EventDetailsView details) {
-        if (details == null || details.summary().eventId() != selectedId) {
+        if (details == null || details.summary().eventId() != selectedId
+                || details.equals(current)) {
             return;
         }
         boolean newEvent = current == null;
@@ -161,16 +162,20 @@ final class EventDetailPane extends ScrollPane {
                 winningOption.setValue(summary.options().getFirst());
             }
         }
-        optionTable.getItems().setAll(details.marketOptions());
+        TableRefresh.update(optionTable, details.marketOptions(),
+                OptionMarketView::optionNumber);
         List<OrderView> orders = new ArrayList<>();
         for (OptionMarketView option : details.marketOptions()) {
             orders.addAll(option.buyOrders());
             orders.addAll(option.sellOrders());
         }
-        orderTable.getItems().setAll(orders);
-        executionTable.getItems().setAll(details.executionsNewestFirst());
-        tradeTable.getItems().setAll(details.tradesNewestFirst());
-        positionTable.getItems().setAll(details.participantPositions());
+        TableRefresh.update(orderTable, orders, OrderView::orderId);
+        TableRefresh.update(executionTable, details.executionsNewestFirst(),
+                ExecutionView::executionId);
+        TableRefresh.update(tradeTable, details.tradesNewestFirst(),
+                TradeView::tradeNumber);
+        TableRefresh.update(positionTable, details.participantPositions(),
+                PositionView::userName);
         showControls(true);
     }
 

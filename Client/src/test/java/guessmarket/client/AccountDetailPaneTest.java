@@ -72,6 +72,18 @@ class AccountDetailPaneTest {
             assertEquals(1, positions.getItems().size());
             assertEquals("Yes", options.getItems().getFirst().name());
             assertEquals(1, history.getItems().size());
+
+            options.getSelectionModel().selectFirst();
+            history.getSelectionModel().selectFirst();
+            PositionView updated = new PositionView("Alice", 7, "Election", "ACTIVE",
+                    "LMSR", false, List.of(new OptionPositionView(1, "Yes", 4,
+                    16, 1, false)), 4, 16, 1, List.of(), null, null);
+            pane.update(new UserDetailsView("Alice", 50, "ACTIVE", List.of(),
+                    List.of(updated)), List.of(activity));
+
+            assertEquals(7, positions.getSelectionModel().getSelectedItem().eventId());
+            assertEquals(4, options.getSelectionModel().getSelectedItem().shares());
+            assertEquals(1, history.getSelectionModel().getSelectedItem().id());
         });
     }
 
