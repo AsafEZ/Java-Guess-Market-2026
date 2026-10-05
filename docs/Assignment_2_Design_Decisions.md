@@ -1174,3 +1174,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The packaged README contains the refresh explanation and the Chat bonus instructions, with left-aligned English text and no orphaned section heading.
 - Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP contains exactly one WAR, one client JAR and batch, and one matching DOCX README. Word rendered all seven pages without clipping; all 86 generated paragraphs have left alignment, and all nine headings are kept with following content. No submitter placeholders remain.
 - Commit ID: This submission README commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 31: Submission README Editorial Cleanup
+
+- Goal: Make the hand-in README a guide to the implemented system and its operation, without repeating the lecturer's directions or commentary.
+- Rationale: The grader needs startup steps, design choices, a class map, and Chat instructions; restating the assignment obscures those details.
+- Design decision: Keep the mandatory bonus notice, solo submitter fields in the generated Word file, GitHub link, practical operating steps, implementation choices, and main class responsibilities. Remove explicit lecturer references and assignment commentary, consolidate repeated architecture details, and retain the two-option limitation as a system fact. Keep the previous ZIP only as a Git-ignored local backup.
+- Changed files: `docs/Assignment_3_Readme.md` and this decision log. The rebuilt DOCX and ZIP are generated under ignored `target/`.
+- Implementation result: The seven-page Word README now presents system behavior, operating instructions, design choices, and code orientation without an explicit lecturer reference. The ZIP includes the revised DOCX.
+- Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. ZIP inspection found exactly one WAR, client JAR, batch, and DOCX; the packaged DOCX matches the generated one, begins with the Chat bonus, and has no unfilled placeholders. All seven pages were rendered in Word and checked for readable layout. Git tracks no files under `target/`, so the earlier submission copy will not be pushed.
+- Commit ID: This editorial cleanup commit; hash to be reported in the completion summary.

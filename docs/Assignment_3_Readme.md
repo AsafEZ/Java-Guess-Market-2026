@@ -11,7 +11,7 @@ Partner (if applicable): [ADD NAME, ID AND EMAIL]
 
 Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 
-## Requirements and startup
+## Starting Guess Market
 
 - Windows with Java 25 on PATH, and Apache Tomcat 10.1 installed. No Maven or IDE is needed to run the packaged application.
 - Copy the single Server.war file to Tomcat's webapps directory. Start Tomcat and wait for automatic deployment at http://localhost:8080/Server/ .
@@ -21,24 +21,24 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 
 ## Workflow
 
-- Sign in with a unique user name. An existing name is rejected; the user may retry with another name. There are no passwords or registration screens.
-- Closing a client window ends its HTTP session, but does not delete its user from the running server. The assignment does not define a way to return to that existing account; the same name remains unavailable until Tomcat restarts and resets the in-memory system. Keep the client open during a test that needs that account.
+- Enter a new user name on the Sign in screen. If that name is already in use, the client shows an error and stays on the same screen so another name can be entered.
+- Closing a client window ends its HTTP session but leaves its user in the running server's memory. That name cannot be used again until Tomcat restarts, so keep the window open while working with that account.
 - Any logged-in user may choose and upload a v3 XML file. A successful upload adds its events to the current system and makes the uploader their market maker. Invalid or duplicate event files produce an error and add nothing. The server parses the request stream and does not save the XML file.
 - The Events screen filters by mechanism, state, and commission type. Select an event to inspect prices or order book, executions, trades, and participants. The market maker may open and close it; active LMSR events allow share purchases, and active Order Book events allow buy/sell limit orders.
 - The Account screen shows other users' names, balances, and market-maker indicators. The private pane shows your own balance, fund deposit, positions, option holdings, trades, and activity ledger. These views refresh about once per second.
-- The `Chat` tab is shared by all logged-in users. Type a message and press `Send` or Enter; it appears in every client's chat within the normal one-second polling cycle. For a quick check, open two client windows with different names, send from each, and verify that both windows show both messages with the correct senders. Chat history is in server memory and disappears when Tomcat restarts.
-- The lecturer clarified that support for events with more than two options is not required despite the original aspiration in the assignment document; the supplied v3 schema and examples are accepted.
+- The `Chat` tab shows one conversation shared by logged-in users. Its controls and a two-window check are described below.
+- Event screens and trading support two-option events. Events with more than two options are not supported.
 
 ## Periodic refresh and selection
 
 - The client polls the shared server every second for events, users, the signed-in account, activity history, and the selected event's details. HTTP calls run off the JavaFX thread.
 - Incoming data-only DTOs are compared by value with the displayed data. An unchanged response leaves the relevant table untouched, avoiding repeated row replacement and selection changes when the server has no new information.
 - When data does change, each affected table saves its selected row by a stable key, replaces the rows, and selects the matching updated row. A row that no longer exists remains unselected. Account position updates suppress intermediate selection callbacks so their option and trade tables do not clear briefly during the replacement.
-- Chat is incremental: the client requests only messages after its last received message ID and appends them. The server API and Engine do not need a version counter or changes for this refresh strategy.
+- Chat is incremental: the client requests only messages after its last received message ID and appends them. This refresh strategy needs no server-side version counter or Engine changes.
 
 ## Using and checking the Chat bonus
 
-1. Deploy the `Server.war` from this ZIP and start Tomcat before opening the desktop client. Launch `Client/run-client.bat` twice, leaving both windows open.
+1. With the `Server.war` from this ZIP running in Tomcat, launch `Client/run-client.bat` twice and leave both windows open.
 2. Sign in with two different, unused names. Each window opens on Events; select the `Chat` tab in each. An empty chat displays `No messages yet`.
 3. In the first window, type a message of 1 to 500 characters in `Message`, then press `Send` or Enter. The sender name, local time, and text should appear in both windows, normally within about one second. Repeat from the second window; both messages should appear in both windows in the same order.
 4. Blank messages cannot be sent, and a message over 500 characters is rejected with feedback. Sending does not block the rest of the interface. There are no private chats, attachments, message edits, deletions, or administrator controls: this bonus is one shared conversation for logged-in users.
@@ -46,14 +46,12 @@ Source code: https://github.com/AsafEZ/Java-Guess-Market-2026
 
 If a message does not appear, confirm that both windows use the `Client` directory from this ZIP and that `http://localhost:8080/Server/api/health` responds. An older `Server.war` will not provide the Chat endpoint. The client shows request errors in the header; check Tomcat logs if the server is unavailable.
 
-## Architecture and decisions
+## Implementation choices
 
-- Server.war contains Engine, Protocol, Gson, XML validation resources, servlet routes, and their runtime dependencies. Tomcat supplies the Servlet API. `EngineContextListener` holds one Engine instance for the Tomcat deployment.
-- Engine remains independent of UI code. `Assignment3Engine` extends the Assignment 2 API without changing its original methods. Event uploads are cumulative and atomic. Accounts and activity history are memory-only.
-- Protocol is a shared, data-only JAR. Servlet `ViewMapper` converts Engine DTOs to flat JSON views; the client never depends on Engine implementation classes.
-- Server servlets handle login/session, XML upload, public event/user lists, detailed event/private account reads, deposits, history, and event actions. User identity for private actions is always taken from the HTTP session.
-- `MarketApiClient` uses Java HttpClient, Gson, and a cookie manager. `ClientLauncher` initializes the Windows-specific loopback workaround before the JavaFX app starts. `MarketClientApplication` provides navigation, upload, filtering, and polling. `EventDetailPane` and `AccountDetailPane` render method-specific trading and private account data.
-- Event, user, account, and history data are polled every second. The client compares each new data-only response with the displayed records and replaces table rows only when their content changes. Selections are restored by stable keys such as event ID, user name, option number, or order, trade, execution, and activity IDs after a changed table is refreshed. Chat requests only messages after the last received message ID and appends them. Background tasks handle network calls without blocking the JavaFX thread. There is no persistent storage and no direct client-to-client communication.
+- One Engine instance serves all users in the Tomcat deployment. The Engine keeps accounts, events, trades, and activity in memory; the server keeps chat history separately in memory. Restarting the deployment clears both. XML uploads append new events only after the whole file passes validation, so a failed upload adds nothing.
+- Engine has no UI dependency. We extended its existing API for account operations and placed the data-only Protocol records in a separate JAR shared by server and desktop client. `ViewMapper` turns Engine DTOs into JSON responses; the client does not depend on Engine implementation classes.
+- The server identifies a user from the HTTP session cookie for private reads and actions, rather than trusting a name in a request. Closing a client ends that session without deleting the in-memory account.
+- The desktop client uses background HTTP calls to avoid blocking JavaFX. Its one-second refresh compares incoming records before changing tables and restores selections by stable keys. Chat uses a message ID cursor, so clients receive and append only new messages. Clients communicate through the server, never directly with one another.
 
 ## Main classes and responsibilities
 
@@ -91,4 +89,3 @@ The request path is JavaFX pane -> `MarketApiClient` -> Tomcat servlet -> shared
 - The Chat tab needs the Server.war from this ZIP. Replacing an older deployed WAR restarts the in-memory application and clears its users, events, balances, and chat; do this before starting a grading session.
 - Java must be version 25. The client directory must retain its lib folder alongside Client.jar and run-client.bat.
 - Upload only Assignment 3 XML files. A duplicate event name or invalid XML is rejected as a whole; details appear in the client feedback area.
-- The user list reveals only other users' public name/balance/market-maker status; account positions and history remain private to the logged-in session.
