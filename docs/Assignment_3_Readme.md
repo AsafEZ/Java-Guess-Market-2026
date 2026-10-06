@@ -9,7 +9,7 @@ ID: [ADD ID NUMBER]
 Email: [ADD CONTACT EMAIL]
 Partner (if applicable): [ADD NAME, ID AND EMAIL]
 
-Source code: https://github.com/AsafEZ/Java-Guess-Market-2026/tree/feature/trading-mechanism
+Source code: https://github.com/AsafEZ/Java-Guess-Market-2026/tree/main
 
 ## Starting Guess Market
 

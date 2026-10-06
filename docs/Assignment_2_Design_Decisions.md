@@ -1194,3 +1194,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The packaged Word README contains a direct link to the same branch as the submitted code.
 - Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP passed integrity checks and contains one WAR, one client batch, and one matching DOCX. Word rendered seven pages; the longer URL wraps cleanly on page one.
 - Commit ID: This direct-link commit; hash to be reported in the completion summary.
+
+## Assignment 3 Stage 33: Main Branch Submission Link
+
+- Goal: Point the Assignment 3 hand-in README to `main` before consolidating the verified feature work there.
+- Rationale: The submitter requested one up-to-date default branch, and the previous README link opened the feature branch directly.
+- Design decision: Change only the source URL to the explicit `main` branch and advance `main` by fast-forward after confirming it is an ancestor of the feature branch. Do not rewrite history or remove the feature branch.
+- Changed files: `docs/Assignment_3_Readme.md` and this decision log. The rebuilt DOCX and ZIP remain ignored generated artifacts.
+- Implementation result: The packaged Word README opens the intended final source branch while retaining the reviewed system guide and Chat bonus notice.
+- Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP passed integrity checks and contains exactly one WAR, client JAR, batch, and matching DOCX. The Word document renders cleanly with the `main` link on its first page.
+- Commit ID: This main-link commit; hash to be reported in the completion summary.
