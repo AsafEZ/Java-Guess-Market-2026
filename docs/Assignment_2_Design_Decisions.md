@@ -1254,3 +1254,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The guide describes Tomcat-first startup, the batch launcher, exact browser URL, supported screens and controls, class responsibilities, and the seven AI-process answers.
 - Test result: Word exported and rendered to two page images; both were visually inspected after removing an inherited title border. Content checks confirmed all required topics and no submitter ID.
 - Commit ID: This Assignment 4 README commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 6: Separate Web Client Hand-in
+
+- Goal: Package the browser client and its independent Word README for the separate Assignment 4 submission.
+- Rationale: The grader needs only the Web client source, launcher, and guide; the Assignment 3 WAR remains a separate, unchanged submission.
+- Design decision: Build a ZIP from an explicit source-file list rather than archiving `WebClient` wholesale, so local `node_modules`, built assets, and test-server output cannot leak into the hand-in. Put one `README.docx` at the ZIP root and the runnable client in `WebClient/`.
+- Changed files: `scripts/package-assignment4.ps1` and this decision log. The ZIP is generated under ignored `target/assignment4`.
+- Implementation result: `Guess_Market_Ex4_Web_Client.zip` contains 18 files and can be extracted and launched using the README instructions.
+- Test result: Archive entry and CRC checks passed. It contains exactly one DOCX, the batch and package lock, no generated dependency directories, and no government-ID path. Web client tests and production build passed after packaging.
+- Commit ID: This Assignment 4 packaging commit; hash to be reported in the completion summary.
