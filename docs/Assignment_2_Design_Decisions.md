@@ -1234,3 +1234,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The browser shows public user balances and market-maker status, private account summary, add-funds form, event positions with option/trade details, and a readable account history. Selection survives refreshed position DTOs.
 - Test result: Ten Web client tests and the production build passed. An isolated Tomcat session confirmed deposit, history, and automatic display of a different user's new balance; browser console reported no errors. The account view was checked at a 390-pixel viewport.
 - Commit ID: This browser account workspace commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 4: Grader Launch Path
+
+- Goal: Let the grader start the browser client from its own directory with one batch file and a fixed URL.
+- Rationale: The Assignment 4 hand-in must be independent of the JavaFX client and must not require a different Tomcat deployment.
+- Design decision: Check for Node.js and npm, install locked dependencies only if absent, then start Vite at `127.0.0.1:5173`. Its existing proxy targets the unchanged `Server` context at `127.0.0.1:8080`. Keep the test-only server override outside the submitted launcher.
+- Changed files: `WebClient/run-web-client.bat` and this decision log.
+- Implementation result: A grader can start Tomcat normally, run the batch, and open `http://127.0.0.1:5173/`. The launcher reports missing prerequisites or startup failures rather than closing silently.
+- Test result: The batch reached Vite's ready state and a new browser tab loaded the client and an event from isolated Tomcat. The Web client tests and production build passed after the launcher change.
+- Commit ID: This grader launch commit; hash to be reported in the completion summary.
