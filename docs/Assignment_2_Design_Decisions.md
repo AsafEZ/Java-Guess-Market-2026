@@ -1274,3 +1274,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The grader launch path remains the same, but works with a wider range of installed Node versions.
 - Test result: A clean `npm ci`, all ten Web tests, the production build, and batch startup passed. A fresh browser tab loaded an event from isolated Tomcat. The rebuilt archive passed content and CRC checks.
 - Commit ID: This Node compatibility commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 8: README Editorial Revision
+
+- Goal: Use colons instead of semicolons in the submission README and remove statements that merely repeat Assignment 4 instructions.
+- Rationale: The README should reflect the student's preferred punctuation and help the grader operate and understand this implementation, rather than restating the assignment brief.
+- Design decision: Keep the concrete launch path, feature guide, class map, and the student's seven AI-process answers. Remove redundant statements about assignment scope and unchanged Tomcat deployment. Regenerate the Word document and submission ZIP from the revised Markdown source.
+- Changed files: `WebClient/README.md` and this decision log. The generated DOCX and ZIP remain under ignored `target/assignment4`.
+- Implementation result: The README uses no semicolons, retains the exact startup URL and implementation-specific guidance, and no longer repeats excluded features or prescribed login constraints.
+- Test result: The DOCX rendered and both pages were visually inspected. The Markdown, DOCX, and ZIP-contained DOCX contain no semicolons; the ZIP has 18 valid entries. All ten Web client tests and the production build passed.
+- Commit ID: This README editorial revision commit; hash to be reported in the completion summary.
