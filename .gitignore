@@ -43,6 +43,8 @@ buildNumber.properties
 *.iws
 *.ipr
 out/
+WebClient/node_modules/
+WebClient/dist/
 
 # Compiled class files & Logs
 *.class

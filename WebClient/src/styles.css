@@ -1,0 +1,42 @@
+:root {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #16242a;
+  background: #f5f7f8;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .6; }
+
+.boot-state { min-height: 100vh; display: grid; place-items: center; color: #52656d; }
+.login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.login-layout { width: min(100%, 420px); }
+.login-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+.login-brand h1 { margin: 0; font-size: 30px; font-weight: 700; }
+.brand-mark { display: inline-grid; place-items: center; width: 42px; height: 42px;
+  flex: none; background: #0d6570; color: white; font-size: 13px; font-weight: 800; }
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-form h2 { margin: 0 0 10px; font-size: 21px; }
+.login-form label { font-size: 14px; font-weight: 600; }
+.login-form input { height: 44px; border: 1px solid #b8c8cf; border-radius: 4px;
+  padding: 0 12px; background: white; outline-color: #0b7890; }
+.button { border-radius: 4px; padding: 10px 16px; border: 1px solid transparent; font-weight: 600; }
+.button.primary { background: #0c687c; color: white; }
+.button.primary:hover:not(:disabled) { background: #0a5365; }
+.button.subtle { background: transparent; color: #164958; border-color: #b4cbd1; }
+.form-error { color: #a0252d; margin: 4px 0 0; font-size: 14px; }
+.app-shell { min-height: 100vh; }
+.app-header { height: 68px; display: flex; align-items: center; gap: 14px;
+  padding: 0 24px; background: white; border-bottom: 1px solid #dce5e9; }
+.header-spacer { flex: 1; }
+.current-user { font-size: 14px; color: #506168; }
+.workspace-placeholder { max-width: 1160px; margin: 0 auto; padding: 32px 24px; }
+.workspace-placeholder h1 { margin: 0; font-size: 24px; }
+@media (max-width: 520px) {
+  .app-header { padding: 0 14px; }
+  .app-header strong { font-size: 14px; }
+  .current-user { max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+}

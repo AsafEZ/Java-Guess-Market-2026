@@ -1204,3 +1204,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The packaged Word README opens the intended final source branch while retaining the reviewed system guide and Chat bonus notice.
 - Test result: Full Assignment 3 packaging passed 367 tests with zero failures, errors, or skips. The ZIP passed integrity checks and contains exactly one WAR, client JAR, batch, and matching DOCX. The Word document renders cleanly with the `main` link on its first page.
 - Commit ID: This main-link commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 1: Web Client Foundation
+
+- Goal: Create a separate browser client that signs in through the existing Assignment 3 HTTP API.
+- Rationale: Assignment 4 requires a Web UI without changing how the Tomcat server is built or started.
+- Design decision: Use React and Vite for the client. Vite proxies `/Server/api` to the existing Tomcat service, retaining its session cookie and API contracts without a server change. The default target is `127.0.0.1:8080`; an environment override is only for isolated testing.
+- Changed files: `WebClient` foundation, `.gitignore`, and this decision log.
+- Implementation result: The standalone client has a login form, session restoration, logout, consistent API error handling, and a workspace shell ready for the required screens.
+- Test result: Three API tests and the production build passed. A browser login and logout worked against a separately deployed copy of the submitted Assignment 3 WAR on an isolated Tomcat port.
+- Commit ID: This Web client foundation commit; hash to be reported in the completion summary.
