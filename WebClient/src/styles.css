@@ -101,11 +101,38 @@ button:disabled { cursor: default; opacity: .6; }
 .data-table td { padding: 10px; border-bottom: 1px solid #e6edef; white-space: nowrap; }
 .data-table .empty-cell { padding: 30px 10px; color: #718087; text-align: center; }
 .empty-state { margin: 0; padding: 24px 16px; color: #718087; font-size: 14px; }
-.account-placeholder { padding: 12px 0; }.account-placeholder h1 { font-size: 24px; margin: 0; }
+.account-layout { grid-template-columns: minmax(310px, 38%) minmax(0, 1fr); }
+.user-master { min-width: 0; border-right: 1px solid #dce5e9; }
+.pane-title { display: flex; align-items: center; gap: 10px; padding: 18px 16px 14px; }
+.pane-title h2 { margin: 0; font-size: 18px; }.pane-title span { color: #78888d; font-size: 13px; }
+.user-master .data-table td { white-space: normal; overflow-wrap: anywhere; }
+.self-name { font-weight: 700; color: #0a6576; }
+.account-detail { min-width: 0; padding: 0 20px 28px; }
+.account-detail .pane-title { padding-left: 0; }
+.account-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+  padding: 4px 0 20px; border-bottom: 1px solid #e4ebee; }
+.account-summary div { display: flex; flex-direction: column; min-width: 0; gap: 7px; }
+.account-summary span { color: #73838a; font-size: 12px; }
+.account-summary strong { font-size: 19px; overflow-wrap: anywhere; }
+.deposit-form { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; margin: 18px 0 22px; }
+.deposit-form label { width: 100%; font-size: 13px; font-weight: 700; }
+.deposit-form input { width: 160px; height: 38px; border: 1px solid #cbd9de; border-radius: 4px;
+  padding: 0 10px; background: white; }
+.deposit-form .button { min-height: 38px; padding: 8px 14px; }
+.account-tabs { margin-bottom: 0; }.positions-table td { white-space: normal; }
+.table-link { border: 0; padding: 0; color: #0b6576; background: none; font-weight: 700;
+  text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.selected-row { background: #eaf4f5; }
+.position-detail { margin-top: 22px; }.position-detail h3 { margin: 0 0 6px; font-size: 17px; }
+.position-detail p { margin: 0 0 14px; color: #66777d; font-size: 13px; }
+.position-detail h4 { margin: 22px 0 8px; font-size: 14px; }
+.position-totals { display: flex; flex-wrap: wrap; gap: 12px 22px; padding: 12px 0;
+  border-top: 1px solid #e4ebee; border-bottom: 1px solid #e4ebee; font-size: 13px; }
 @media (max-width: 900px) {
   .master-detail { grid-template-columns: minmax(0, 1fr); }
   .event-master { border-right: 0; border-bottom: 1px solid #dce5e9; }
   .event-list { max-height: 280px; min-height: 80px; }
+  .user-master { border-right: 0; border-bottom: 1px solid #dce5e9; }
 }
 @media (max-width: 520px) {
   .app-header { padding: 0 14px; }
@@ -118,4 +145,6 @@ button:disabled { cursor: default; opacity: .6; }
   .event-list-heading, .event-row { grid-template-columns: minmax(0, 1fr) 76px 82px; gap: 6px; }
   .event-row { padding: 8px; }
   .event-list-heading { padding: 8px; }
+  .account-detail { padding: 0 12px 24px; }
+  .account-summary strong { font-size: 16px; }
 }

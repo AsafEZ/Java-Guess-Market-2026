@@ -2,24 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import { api, ApiError } from './api.js';
 import { availableActions, filterEvents, positivePrice, positiveWhole, sameData } from './eventModel.js';
+import DataTable from './DataTable.jsx';
 
 const money = (value) => value == null ? '-' : Number(value).toFixed(2);
 const text = (value) => value == null ? '-' : String(value).replaceAll('_', ' ');
-
-function DataTable({ columns, rows, rowKey, empty }) {
-  return (
-    <div className="table-scroll">
-      <table className="data-table">
-        <thead><tr>{columns.map((column) => <th key={column.label}>{column.label}</th>)}</tr></thead>
-        <tbody>
-          {rows.length === 0 ? <tr><td colSpan={columns.length} className="empty-cell">{empty}</td></tr>
-            : rows.map((row) => <tr key={rowKey(row)}>{columns.map((column) =>
-              <td key={column.label}>{column.value(row)}</td>)}</tr>)}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function MarketData({ detail }) {
   const [tab, setTab] = useState('Options');

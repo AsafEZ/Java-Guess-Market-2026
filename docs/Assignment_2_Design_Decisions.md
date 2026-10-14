@@ -1224,3 +1224,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The Web screen has event filters, market details, option/order/execution/trade/participant tables, and permission-appropriate open, purchase, order, and close controls.
 - Test result: Seven Web client tests and the production build passed. A separately authenticated user uploaded the sample XML into isolated Tomcat, and the browser received the event automatically. Selection, details, filter hiding/restoration, browser logs, and narrow-screen layout were checked interactively.
 - Commit ID: This browser events workspace commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 3: Browser Account Workspace
+
+- Goal: Show the shared user list and the signed-in user's account, positions, and history in the browser.
+- Rationale: Assignment 4 requires an account view comparable to JavaFX, without exposing private account details through the public user list or changing the server.
+- Design decision: Reuse the Assignment 3 users, account, history, and deposit APIs. Poll once after each completed request, update state only when DTO values change, and identify selected positions by stable event ID. Share the small data-table renderer with the events view. Validate deposit amounts in the client and leave server validation authoritative.
+- Changed files: `WebClient/src/AccountWorkspace.jsx`, `DataTable.jsx`, `accountModel.js`, focused tests, the app shell/styles, and this decision log.
+- Implementation result: The browser shows public user balances and market-maker status, private account summary, add-funds form, event positions with option/trade details, and a readable account history. Selection survives refreshed position DTOs.
+- Test result: Ten Web client tests and the production build passed. An isolated Tomcat session confirmed deposit, history, and automatic display of a different user's new balance; browser console reported no errors. The account view was checked at a 390-pixel viewport.
+- Commit ID: This browser account workspace commit; hash to be reported in the completion summary.

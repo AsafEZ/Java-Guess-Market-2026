@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, ApiError } from './api.js';
 import EventWorkspace from './EventWorkspace.jsx';
+import AccountWorkspace from './AccountWorkspace.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -103,7 +104,7 @@ export default function App() {
         {error && <p className="form-error" role="alert">{error}</p>}
         {view === 'Events' ? <EventWorkspace userName={user.name}
           onSessionExpired={() => setUser(null)} />
-          : <div className="account-placeholder"><h1>Account</h1><p>Loading account...</p></div>}
+          : <AccountWorkspace userName={user.name} onSessionExpired={() => setUser(null)} />}
       </main>
     </div>
   );
