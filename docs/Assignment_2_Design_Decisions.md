@@ -1264,3 +1264,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: `Guess_Market_Ex4_Web_Client.zip` contains 18 files and can be extracted and launched using the README instructions.
 - Test result: Archive entry and CRC checks passed. It contains exactly one DOCX, the batch and package lock, no generated dependency directories, and no government-ID path. Web client tests and production build passed after packaging.
 - Commit ID: This Assignment 4 packaging commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 7: Broader Node Compatibility
+
+- Goal: Avoid requiring the grader to upgrade an already installed Node.js solely to start the Web client.
+- Rationale: Assignment 4 permits assuming Node.js is installed but does not guarantee the newest release; Vite 8 requires Node 20.19 or 22.12 and newer.
+- Design decision: Use Vite 6.3.6, whose package metadata supports Node 18, 20, and 22 or newer. Keep React, the API proxy, launcher, and server unchanged.
+- Changed files: `WebClient/package.json`, its lock file, and this decision log. The ignored submission ZIP is rebuilt with the new lock file.
+- Implementation result: The grader launch path remains the same, but works with a wider range of installed Node versions.
+- Test result: A clean `npm ci`, all ten Web tests, the production build, and batch startup passed. A fresh browser tab loaded an event from isolated Tomcat. The rebuilt archive passed content and CRC checks.
+- Commit ID: This Node compatibility commit; hash to be reported in the completion summary.
