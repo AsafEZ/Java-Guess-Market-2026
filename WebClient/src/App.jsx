@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, ApiError } from './api.js';
+import EventWorkspace from './EventWorkspace.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -7,6 +8,7 @@ export default function App() {
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [view, setView] = useState('Events');
 
   useEffect(() => {
     let active = true;
@@ -92,10 +94,16 @@ export default function App() {
           Sign out
         </button>
       </header>
-      <main className="workspace-placeholder">
-        <h1>Events</h1>
-        <p>The market workspace is loading.</p>
+      <nav className="main-tabs" aria-label="Main views">
+        {['Events', 'Account'].map((item) => <button key={item} type="button"
+          aria-current={view === item ? 'page' : undefined}
+          onClick={() => setView(item)}>{item}</button>)}
+      </nav>
+      <main className="workspace">
         {error && <p className="form-error" role="alert">{error}</p>}
+        {view === 'Events' ? <EventWorkspace userName={user.name}
+          onSessionExpired={() => setUser(null)} />
+          : <div className="account-placeholder"><h1>Account</h1><p>Loading account...</p></div>}
       </main>
     </div>
   );

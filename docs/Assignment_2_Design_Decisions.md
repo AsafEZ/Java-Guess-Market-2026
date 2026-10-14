@@ -1214,3 +1214,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: The standalone client has a login form, session restoration, logout, consistent API error handling, and a workspace shell ready for the required screens.
 - Test result: Three API tests and the production build passed. A browser login and logout worked against a separately deployed copy of the submitted Assignment 3 WAR on an isolated Tomcat port.
 - Commit ID: This Web client foundation commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 2: Browser Events Workspace
+
+- Goal: Show the shared market and allow all Assignment 4 event actions through the existing HTTP API.
+- Rationale: The browser client must resemble the JavaFX events screen while seeing changes made by other clients.
+- Design decision: Poll events and selected-event details one second after each completed request, keep the selected event by ID, and replace React state only when DTO data changes. Keep filters and market-data tab selection local to the browser. Hide details while their event is filtered out, retaining its ID for restoration.
+- Changed files: `WebClient/src/EventWorkspace.jsx`, `WebClient/src/eventModel.js`, focused tests, the app shell/styles, and this decision log.
+- Implementation result: The Web screen has event filters, market details, option/order/execution/trade/participant tables, and permission-appropriate open, purchase, order, and close controls.
+- Test result: Seven Web client tests and the production build passed. A separately authenticated user uploaded the sample XML into isolated Tomcat, and the browser received the event automatically. Selection, details, filter hiding/restoration, browser logs, and narrow-screen layout were checked interactively.
+- Commit ID: This browser events workspace commit; hash to be reported in the completion summary.
