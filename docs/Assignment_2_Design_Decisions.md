@@ -1244,3 +1244,13 @@ Each subtask must compile, pass the relevant tests and Assignment 1 regression c
 - Implementation result: A grader can start Tomcat normally, run the batch, and open `http://127.0.0.1:5173/`. The launcher reports missing prerequisites or startup failures rather than closing silently.
 - Test result: The batch reached Vite's ready state and a new browser tab loaded the client and an event from isolated Tomcat. The Web client tests and production build passed after the launcher change.
 - Commit ID: This grader launch commit; hash to be reported in the completion summary.
+
+## Assignment 4 Stage 5: Independent Submission README
+
+- Goal: Give the grader a standalone Web-client guide and answer all seven AI-process questions from the Assignment 4 instructions.
+- Rationale: The browser client has a separate launch path, and the student's own experience must be described accurately rather than inferred from the code.
+- Design decision: Keep a Hebrew Markdown source next to the Web client and generate a two-page Word hand-in from it. Preserve the student's answers in the first person, including limited personal code involvement and the negative learning experience. Do not include a government ID in repository content.
+- Changed files: `WebClient/README.md`, `scripts/build-assignment4-readme.py`, and this decision log. The generated DOCX is under ignored `target/assignment4`.
+- Implementation result: The guide describes Tomcat-first startup, the batch launcher, exact browser URL, supported screens and controls, class responsibilities, and the seven AI-process answers.
+- Test result: Word exported and rendered to two page images; both were visually inspected after removing an inherited title border. Content checks confirmed all required topics and no submitter ID.
+- Commit ID: This Assignment 4 README commit; hash to be reported in the completion summary.
